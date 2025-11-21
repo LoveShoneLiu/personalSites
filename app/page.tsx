@@ -1,103 +1,174 @@
-import Image from "next/image";
+import Link from "next/link";
+import styles from "./page.module.scss";
+import { listPosts, type BlogPost } from "@/lib/posts";
+import { checkDbConnection } from "./db";
 
-export default function Home() {
+const experiences = [
+  {
+    company: "Neon • 资深前端工程师",
+    duration: "2023 - 至今",
+    highlights: [
+      "负责 Vercel Marketplace 集成，为开发者提供一键接入 Neon 数据库的体验。",
+      "搭建多租户 UI 基础设施，推动团队组件库统一。",
+    ],
+  },
+  {
+    company: "Vercel • 全栈工程师",
+    duration: "2020 - 2023",
+    highlights: [
+      "为 Next.js 模板生态贡献 20+ 个示例，涵盖数据可视化、实时协作等场景。",
+      "主导 Turbopack 预览阶段的性能监控平台，缩短问题定位时间 40%。",
+    ],
+  },
+  {
+    company: "自由职业者",
+    duration: "2017 - 2020",
+    highlights: [
+      "帮助多家初创团队搭建 MVP，并交付数据驱动的管理后台。",
+      "与设计师、产品紧密协作，提供端到端的体验优化。",
+    ],
+  },
+];
+
+const skills = [
+  "TypeScript",
+  "Next.js",
+  "React Server Components",
+  "Neon Postgres",
+  "Drizzle ORM",
+  "Node.js",
+  "SCSS / CSS Modules",
+  "Edge Functions",
+];
+
+const contact = [
+  { label: "邮箱", value: "hello@shaofeiliu.dev" },
+  { label: "所在地", value: "上海 · Remote" },
+  { label: "当前状态", value: "接收远程合作 / 技术顾问" },
+];
+
+export default async function HomePage() {
+  let recentPosts: BlogPost[] = [];
+  let postsError: string | null = null;
+
+  try {
+    recentPosts = await listPosts(3);
+  } catch (error) {
+    postsError =
+      error instanceof Error
+        ? error.message
+        : "暂时无法加载最新文章，请稍后再试。";
+  }
+
+  const dbStatus = await checkDbConnection();
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className={styles.home}>
+      <section className={styles.hero}>
+        <p className={styles.heroEyebrow}>个人主页 · 简历</p>
+        <h1>刘少飞 · 全栈工程师</h1>
+        <p className={styles.heroIntro}>
+          擅长以产品视角构建前后端一体化体验。专注 Next.js、Neon
+          Postgres 以及现代数据层，喜欢把复杂需求拆解成清晰、可扩展的模块。
+        </p>
+        <div className={styles.heroMeta}>
+          <div>
+            <span className={styles.metaLabel}>职业定位</span>
+            <strong>Senior Full-stack / Tech Lead</strong>
+          </div>
+          <div>
+            <span className={styles.metaLabel}>关注方向</span>
+            <strong>开发者平台 · 数据应用 · SaaS</strong>
+          </div>
+          <div className={styles.metaActions}>
+            <Link href="/blog">查看博客</Link>
+            <a href="mailto:hello@shaofeiliu.dev">联系我</a>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>经历</h2>
+          <p>打造稳定、可维护且可观测的产品体验。</p>
+        </div>
+        <div className={styles.timeline}>
+          {experiences.map((exp) => (
+            <article key={exp.company} className={styles.timelineItem}>
+              <header>
+                <h3>{exp.company}</h3>
+                <span>{exp.duration}</span>
+              </header>
+              <ul>
+                {exp.highlights.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>技能与工具</h2>
+          <p>偏好类型安全、自动化测试与 CI/CD 全流程。</p>
+        </div>
+        <div className={styles.skillGrid}>
+          {skills.map((skill) => (
+            <span key={skill}>{skill}</span>
+          ))}
+        </div>
+        <div className={styles.contactCard}>
+          <h3>联系信息</h3>
+          <dl>
+            {contact.map((item) => (
+              <div key={item.label}>
+                <dt>{item.label}</dt>
+                <dd>{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+          <div
+            className={`${styles.statusChip} ${
+              dbStatus === "Database connected"
+                ? styles.statusSuccess
+                : styles.statusDanger
+            }`}
+          >
+            数据库：{dbStatus}
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h2>最新博文</h2>
+          <Link href="/blog">查看全部文章 →</Link>
+        </div>
+        {postsError ? (
+          <p className={styles.note}>{postsError}</p>
+        ) : recentPosts.length === 0 ? (
+          <p className={styles.note}>暂无文章，敬请期待。</p>
+        ) : (
+          <div className={styles.postGrid}>
+            {recentPosts.map((post) => (
+              <article key={post.id} className={styles.postCard}>
+                <p className={styles.postDate}>
+                  {new Date(post.publishedAt).toLocaleDateString("zh-CN", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </p>
+                <h3>{post.title}</h3>
+                <p>{post.summary}</p>
+                <Link href="/blog">阅读全文 →</Link>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }

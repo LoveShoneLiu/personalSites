@@ -1,0 +1,149 @@
+$md: 768px;
+
+.blog {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.intro,
+.postsSection,
+.apiSection {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2rem;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.intro {
+  h1 {
+    margin: 0.75rem 0 1rem;
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    letter-spacing: -0.02em;
+  }
+
+  p {
+    margin: 0;
+    max-width: 60ch;
+    color: var(--muted);
+    font-size: 1rem;
+  }
+}
+
+.datasource {
+  margin-top: 1.5rem;
+  padding: 0.85rem 1rem;
+  border-radius: 16px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+
+  code {
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    background: rgba(15, 23, 42, 0.08);
+    padding: 0.2rem 0.5rem;
+    border-radius: 8px;
+    color: inherit;
+  }
+}
+
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1.5rem;
+
+  h2 {
+    margin: 0;
+  }
+
+  p {
+    margin: 0;
+    color: var(--muted);
+  }
+}
+
+.note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.postList {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.post {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(15, 23, 42, 0.02);
+
+  h3 {
+    margin: 0;
+    font-size: 1.3rem;
+  }
+}
+
+.postDate {
+  margin: 0;
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.postSummary,
+.postExcerpt {
+  margin: 0;
+  color: var(--muted);
+}
+
+.apiSection {
+  ul {
+    margin: 1.25rem 0 0;
+    padding-left: 1.25rem;
+    color: var(--muted);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+}
+
+.codeBlock {
+  margin-top: 1rem;
+  border-radius: 16px;
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 1rem;
+  font-size: 0.85rem;
+  overflow-x: auto;
+
+  pre {
+    margin: 0;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+}
+
+@media (min-width: $md) {
+  .postList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
