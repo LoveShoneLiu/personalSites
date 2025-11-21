@@ -40,6 +40,7 @@ export default async function BlogPage() {
           <h2>全部文章</h2>
           <p>默认按发布时间倒序展示，可通过 API 自行分页。</p>
         </div>
+        <pre>{JSON.stringify(posts, null, 2)}</pre>
         {error ? (
           <p className={styles.note}>{error}</p>
         ) : posts.length === 0 ? (
