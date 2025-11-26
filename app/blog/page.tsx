@@ -37,13 +37,12 @@ async function getPaginatedPosts(page: number, pageSize: number) {
 }
 
 type BlogPageProps = {
-  searchParams?: {
-    page?: string;
-  };
+  searchParams: Promise<{ page?: string }>;
 };
 
 export default async function BlogPage({ searchParams }: BlogPageProps) {
-  const currentPage = Math.max(1, Number(searchParams?.page) || 1);
+  const resolvedSearchParams = (await searchParams) ?? {};
+  const currentPage = Math.max(1, Number(resolvedSearchParams.page) || 1);
   const { items: blogPosts, total } = await getPaginatedPosts(
     currentPage,
     PAGE_SIZE
