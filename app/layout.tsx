@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import "./globals.css";
 import styles from "./layout.module.scss";
+import Header from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "Shaofei Liu - Full Stack Developer",
@@ -23,21 +23,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <header className={styles.header}>
-          <div className="container">
-            <div className={styles.headerContent}>
-              <Link href="/" className={styles.logo}>
-                <span className={styles.logoDot}></span>
-                <span className={styles.logoText}>Shaofei Liu</span>
-              </Link>
-              <nav className={styles.nav}>
-                <Link href="/" className={styles.navLink}>Home</Link>
-                <Link href="/blog" className={styles.navLink}>Blog</Link>
-                <Link href="/manage" className={styles.navLink}>Admin</Link>
-              </nav>
-            </div>
-          </div>
-        </header>
+        <Header />
         <main className={styles.main}>{children}</main>
         <footer className={styles.footer}>
           <div className="container">

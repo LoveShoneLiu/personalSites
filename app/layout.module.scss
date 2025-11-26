@@ -90,6 +90,52 @@
   }
 }
 
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xl);
+}
+
+.authButton,
+.authButtonSecondary {
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--radius-full);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.authButton {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  color: white;
+  box-shadow: var(--shadow-sm);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.authButtonSecondary {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+
+  &:hover {
+    color: var(--color-error);
+    border-color: var(--color-error);
+  }
+}
+
+@media (max-width: 768px) {
+  .headerRight {
+    gap: var(--spacing-md);
+  }
+}
+
+
 .main {
   flex: 1;
   min-height: calc(100vh - 200px);
