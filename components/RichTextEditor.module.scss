@@ -48,7 +48,7 @@
   padding: var(--spacing-md);
 }
 
-:global(.tiptap-editor) {
+.editorBody :global(.tiptap-editor) {
   min-height: 300px;
   outline: none;
   font-size: 1rem;
