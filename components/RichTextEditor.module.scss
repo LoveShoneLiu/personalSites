@@ -1,0 +1,141 @@
+.editorWrapper {
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-bg-tertiary);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.toolbarGroup {
+  display: flex;
+  gap: var(--spacing-xs);
+  align-items: center;
+  margin-right: var(--spacing-md);
+
+  button {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--radius-sm);
+    border: none;
+    background: transparent;
+    color: var(--color-text-secondary);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+
+    &:hover {
+      background: rgba(148, 163, 184, 0.15);
+      color: var(--color-text);
+    }
+  }
+}
+
+.active {
+  background: var(--color-primary);
+  color: white !important;
+}
+
+.editorBody {
+  background: var(--color-surface);
+  padding: var(--spacing-md);
+}
+
+:global(.tiptap-editor) {
+  min-height: 300px;
+  outline: none;
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--color-text);
+
+  p {
+    margin: 0 0 var(--spacing-md);
+  }
+
+  h1, h2, h3, h4 {
+    font-weight: 700;
+    margin: var(--spacing-lg) 0 var(--spacing-md);
+    line-height: 1.3;
+  }
+
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.75rem; }
+  h3 { font-size: 1.5rem; }
+  h4 { font-size: 1.25rem; }
+
+  ul, ol {
+    padding-left: var(--spacing-2xl);
+    margin-bottom: var(--spacing-md);
+  }
+
+  li {
+    margin-bottom: var(--spacing-xs);
+  }
+
+  blockquote {
+    margin: var(--spacing-lg) 0;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-left: 4px solid var(--color-primary);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    font-style: italic;
+    color: var(--color-text-secondary);
+  }
+
+  code {
+    padding: 2px 4px;
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+  }
+
+  pre {
+    margin: var(--spacing-lg) 0;
+    padding: var(--spacing-md);
+    background: var(--color-bg-tertiary);
+    border-radius: var(--radius-md);
+    overflow-x: auto;
+
+    code {
+      background: none;
+      padding: 0;
+    }
+  }
+
+  a {
+    color: var(--color-primary);
+    text-decoration: underline;
+
+    &:hover {
+      color: var(--color-primary-dark);
+    }
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    margin: var(--spacing-lg) 0;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+@media (max-width: 640px) {
+  .toolbar {
+    gap: var(--spacing-xs);
+  }
+
+  .toolbarGroup {
+    margin-right: var(--spacing-sm);
+  }
+}
+
+

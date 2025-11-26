@@ -1,149 +1,213 @@
-$md: 768px;
+.blogPage {
+  min-height: 100vh;
+  background: var(--color-bg);
+}
 
-.blog {
+.header {
+  padding: var(--spacing-3xl) 0 var(--spacing-2xl);
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-secondary) 100%);
+  text-align: center;
+}
+
+.title {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: var(--spacing-md);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-secondary));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  color: var(--color-text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.content {
+  padding: var(--spacing-3xl) 0;
+}
+
+// Masonry Layout (Waterfall)
+.masonry {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--spacing-xl);
+  grid-auto-rows: 20px;
+}
+
+.card {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-base);
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--color-primary);
+  }
 }
 
-.intro,
-.postsSection,
-.apiSection {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  padding: 2rem;
+.cardImage {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: var(--color-bg-secondary);
+  overflow: hidden;
+
+  img {
+    transition: transform var(--transition-slow);
+  }
+
+  &:hover img {
+    transform: scale(1.05);
+  }
 }
 
-.eyebrow {
+.cardContent {
+  padding: var(--spacing-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  flex: 1;
+}
+
+.cardTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.3;
   margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.25em;
-  font-size: 0.8rem;
-  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.intro {
-  h1 {
-    margin: 0.75rem 0 1rem;
-    font-size: clamp(2rem, 4vw, 2.75rem);
-    letter-spacing: -0.02em;
-  }
+.cardDescription {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
 
-  p {
-    margin: 0;
-    max-width: 60ch;
-    color: var(--muted);
-    font-size: 1rem;
+.cardMeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  margin-top: auto;
+}
+
+.cardDate {
+  font-size: 0.875rem;
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+
+  &::before {
+    content: '📅';
   }
 }
 
-.datasource {
-  margin-top: 1.5rem;
-  padding: 0.85rem 1rem;
-  border-radius: 16px;
-  background: var(--accent-soft);
-  color: var(--accent);
+.cardTags {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-
-  code {
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-    background: rgba(15, 23, 42, 0.08);
-    padding: 0.2rem 0.5rem;
-    border-radius: 8px;
-    color: inherit;
-  }
+  gap: var(--spacing-sm);
 }
 
-.sectionHeader {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-bottom: 1.5rem;
-
-  h2 {
-    margin: 0;
-  }
-
-  p {
-    margin: 0;
-    color: var(--muted);
-  }
-}
-
-.note {
-  margin: 0;
-  color: var(--muted);
-}
-
-.postList {
-  display: grid;
-  gap: 1.25rem;
-}
-
-.post {
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  background: rgba(15, 23, 42, 0.02);
-
-  h3 {
-    margin: 0;
-    font-size: 1.3rem;
-  }
-}
-
-.postDate {
-  margin: 0;
-  font-size: 0.85rem;
-  letter-spacing: 0.2em;
+.tag {
+  padding: var(--spacing-xs) var(--spacing-md);
+  background: var(--color-bg-secondary);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  font-weight: 600;
   text-transform: uppercase;
-  color: var(--muted);
+  letter-spacing: 0.05em;
 }
 
-.postSummary,
-.postExcerpt {
-  margin: 0;
-  color: var(--muted);
-}
-
-.apiSection {
-  ul {
-    margin: 1.25rem 0 0;
-    padding-left: 1.25rem;
-    color: var(--muted);
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
+.cardLink {
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border);
+  
+  span {
+    font-size: 0.875rem;
+    color: var(--color-primary);
+    font-weight: 600;
   }
 }
 
-.codeBlock {
-  margin-top: 1rem;
-  border-radius: 16px;
-  background: #0f172a;
-  color: #e2e8f0;
-  padding: 1rem;
-  font-size: 0.85rem;
-  overflow-x: auto;
+// Empty State
+.emptyState {
+  text-align: center;
+  padding: var(--spacing-3xl);
+  color: var(--color-text-secondary);
+}
 
-  pre {
-    margin: 0;
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-    white-space: pre-wrap;
-    word-break: break-word;
+.emptyIcon {
+  font-size: 4rem;
+  margin-bottom: var(--spacing-lg);
+  opacity: 0.5;
+}
+
+.emptyState h2 {
+  font-size: 1.5rem;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+}
+
+.emptyState p {
+  font-size: 1.125rem;
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .title {
+    font-size: 2.5rem;
+  }
+
+  .subtitle {
+    font-size: 1.125rem;
+  }
+
+  .masonry {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-lg);
+  }
+
+  .cardContent {
+    padding: var(--spacing-lg);
+  }
+
+  .cardTitle {
+    font-size: 1.25rem;
   }
 }
 
-@media (min-width: $md) {
-  .postList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+// Masonry specific heights for waterfall effect
+@media (min-width: 769px) {
+  .card:nth-child(3n + 1) {
+    grid-row-end: span 22;
+  }
+
+  .card:nth-child(3n + 2) {
+    grid-row-end: span 26;
+  }
+
+  .card:nth-child(3n + 3) {
+    grid-row-end: span 24;
   }
 }
-

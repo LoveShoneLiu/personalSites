@@ -1,23 +1,36 @@
 {
-  "name": "vercel-marketplace-neon",
-  "version": "0.1.0",
+  "name": "personal-portfolio",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^1.0.1",
+    "@neondatabase/serverless": "^1.0.2",
+    "bcryptjs": "^2.4.3",
+    "drizzle-orm": "^0.44.7",
+    "@tiptap/react": "^2.7.2",
+    "@tiptap/starter-kit": "^2.7.2",
+    "@tiptap/extension-link": "^2.7.2",
+    "@tiptap/extension-image": "^2.7.2",
+    "@tiptap/extension-underline": "^2.7.2",
     "next": "15.5.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "framer-motion": "^11.15.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.0",
     "sass": "^1.83.0",
     "typescript": "^5"
   }

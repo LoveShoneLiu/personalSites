@@ -1,75 +1,223 @@
-![Vercel with Neon](./assets/home.png)
+# Personal Portfolio & Blog
 
--> View demo: [vercel-marketplace-neon.vercel.app](https://vercel-marketplace-neon.vercel.app/)
+A modern, beautiful personal portfolio website with a blog management system, built with Next.js 15, TypeScript, and Neon Postgres.
 
-# Neon Postgres
+## 🌟 Features
 
-A minimal template for building full-stack React applications using Next.js, Vercel, and Neon.
+- **Modern Design**: Beautiful, responsive UI with smooth animations
+- **SSG Homepage**: Static generated personal portfolio with work experience and education
+- **ISR Blog**: Incremental Static Regeneration for blog posts with waterfall layout
+- **CSR Blog Details**: Client-side rendered blog post details
+- **Admin Panel**: Full-featured blog management with rich text editor
+- **Authentication**: Secure admin login system
+- **Database**: Powered by Neon serverless Postgres with Drizzle ORM
 
-## Getting Started
+## 📋 Pages
 
-Click the "Deploy" button to clone this repo, create a new Vercel project, setup the Neon integration, and provision a new Neon database:
+1. **/** - Homepage (SSG)
+   - Personal information
+   - Work experience
+   - Education background
+   - Skills showcase
 
-[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fneondatabase-labs%2Fvercel-marketplace-neon%2Ftree%2Fmain&project-name=my-vercel-neon-app&repository-name=my-vercel-neon-app&products=[{%22type%22:%22integration%22,%22integrationSlug%22:%22neon%22,%22productSlug%22:%22neon%22,%22protocol%22:%22storage%22}])
+2. **/blog** - Blog List (ISR, revalidates every 60s)
+   - Waterfall/masonry layout
+   - Post previews with images, tags, and descriptions
+   - Click to view full post
 
-Once the process is complete, you can clone the newly created GitHub repository and start making changes locally.
+3. **/bloginfo/[id]** - Blog Details (CSR)
+   - Full blog post content
+   - Rich text rendering
+   - External links support
 
-## Local Setup
+4. **/manage** - Admin Panel (CSR, login required)
+   - Create, edit, delete blog posts
+   - Rich text editor (ReactQuill)
+   - Image upload support
+   - Tags management
+   - Publish/draft status
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ 
+- A Neon database account (free tier available)
 
 ### Installation
 
-Install the dependencies:
-
+1. Clone the repository:
 ```bash
-npm install
+git clone <your-repo-url>
+cd personalSites
 ```
 
-You can use the package manager of your choice. For example, Vercel also supports `bun install` out of the box.
-
-### Development
-
-#### Create a .env file in the project root
-
+2. Install dependencies:
 ```bash
-cp .env.example .env
+npm install --legacy-peer-deps
 ```
 
-#### Get your database URL
-
-Obtain the database connection string from the Connection Details widget on the [Neon Dashboard](https://console.neon.tech/).
-
-#### Add the database URL to the .env file
-
-Update the `.env` file with your database connection string:
-
-```txt
-# The connection string has the format `postgres://user:pass@host/db`
-DATABASE_URL=<your-string-here>
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
 ```
 
-#### Start the development server
+Edit `.env.local` and add your Neon database connection string:
+```
+DATABASE_URL=postgres://username:password@ep-xxxxx.region.aws.neon.tech/neondb
+```
 
+4. Initialize the database:
+```bash
+npm run db:push
+```
+
+Or manually create tables by visiting: `http://localhost:3000/api/init`
+
+5. Run the development server:
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see your site.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🔐 Admin Access
 
-## Learn More
+Default admin credentials:
+- **Username**: admin
+- **Password**: asdf7896
 
-To learn more about Neon, check out the Neon documentation:
+⚠️ **Important**: Change these credentials in production!
 
-- [Neon Documentation](https://neon.tech/docs/introduction) - learn about Neon's features and SDKs.
-- [Neon Discord](https://discord.gg/9kf3G4yUZk) - join the Neon Discord server to ask questions and join the community.
-- [ORM Integrations](https://neon.tech/docs/get-started-with-neon/orms) - find Object-Relational Mappers (ORMs) that work with Neon.
+## 📦 Tech Stack
 
-To learn more about Next.js, take a look at the following resources:
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Database**: Neon Postgres (Serverless)
+- **ORM**: Drizzle ORM
+- **Styling**: SCSS Modules + CSS Variables
+- **Rich Text Editor**: ReactQuill
+- **Animations**: Framer Motion
+- **Authentication**: bcryptjs + sessionStorage
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🗄️ Database Schema
 
-## Deploy on Vercel
+### Users Table
+- id (serial, primary key)
+- username (varchar, unique)
+- password (varchar, hashed)
+- email (varchar)
+- role (varchar, default: 'user')
+- createdAt (timestamp)
 
-Commit and push your code changes to your GitHub repository to automatically trigger a new deployment.
+### Posts Table
+- id (serial, primary key)
+- title (varchar)
+- description (text)
+- content (text)
+- imageUrl (varchar)
+- tags (text, comma-separated)
+- link (varchar)
+- isPublished (boolean)
+- createdAt (timestamp)
+- updatedAt (timestamp)
+
+## 🎨 Customization
+
+### Personal Information
+
+Edit `/app/page.tsx` to update:
+- Personal details (name, email, phone, location)
+- Work experience
+- Education background
+- Skills
+- Social links
+
+### Styling
+
+Global styles are in `/app/globals.css` with CSS variables for easy theming:
+- Colors
+- Spacing
+- Typography
+- Shadows
+- Border radius
+- Transitions
+
+## 📱 Responsive Design
+
+The site is fully responsive and optimized for:
+- Desktop (1200px+)
+- Tablet (768px - 1199px)
+- Mobile (< 768px)
+
+## 🚀 Deployment
+
+### Deploy to Vercel
+
+1. Push your code to GitHub
+2. Import your repository in Vercel
+3. Add your `DATABASE_URL` environment variable
+4. Deploy!
+
+The site will automatically:
+- Build static pages (homepage)
+- Set up ISR for blog list
+- Enable CSR for dynamic pages
+
+### Environment Variables
+
+Make sure to set these in your deployment platform:
+```
+DATABASE_URL=your_neon_connection_string
+```
+
+## 📝 API Routes
+
+- `GET /api/posts` - Get all posts
+- `POST /api/posts` - Create a new post
+- `GET /api/posts/[id]` - Get a specific post
+- `PUT /api/posts/[id]` - Update a post
+- `DELETE /api/posts/[id]` - Delete a post
+- `POST /api/auth/login` - Admin login
+- `GET /api/init` - Initialize database (create tables and admin user)
+
+## 🔧 Development Scripts
+
+```bash
+# Development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Run linter
+npm run lint
+
+# Generate database migrations
+npx drizzle-kit generate
+
+# Push schema to database
+npx drizzle-kit push
+```
+
+## 🤝 Contributing
+
+This is a personal portfolio project, but feel free to fork and customize it for your own use!
+
+## 📄 License
+
+MIT License - feel free to use this project for your own portfolio.
+
+## 🙏 Acknowledgments
+
+- Built with [Next.js](https://nextjs.org/)
+- Database by [Neon](https://neon.tech/)
+- Icons from Unicode Emoji
+- Inspired by modern portfolio designs
+
+---
+
+**Made with ❤️ for job hunting in New Zealand**

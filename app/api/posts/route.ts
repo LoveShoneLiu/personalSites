@@ -1,47 +1,55 @@
-import { NextResponse } from "next/server";
-import { createPost, listPosts } from "@/lib/posts";
+import { NextRequest, NextResponse } from "next/server";
+import { db, posts } from "@/lib/db";
+import { desc } from "drizzle-orm";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const posts = await listPosts();
-    console.log('posts', posts);
-    debugger;
-    return NextResponse.json({ posts });
+    const allPosts = await db
+      .select()
+      .from(posts)
+      .orderBy(desc(posts.createdAt));
+
+    return NextResponse.json(allPosts);
   } catch (error) {
-    console.error("Failed to fetch posts:", error);
+    console.error("Error fetching posts:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, summary, content, publishedAt } = body ?? {};
+    const { title, description, content, imageUrl, tags, link, isPublished } = body;
 
-    if (!title || !summary || !content) {
+    if (!title || !content) {
       return NextResponse.json(
-        { error: "title, summary, and content are required." },
+        { error: "Title and content are required" },
         { status: 400 }
       );
     }
 
-    const post = await createPost({
-      title,
-      summary,
-      content,
-      publishedAt,
-    });
+    const result = await db
+      .insert(posts)
+      .values({
+        title,
+        description,
+        content,
+        imageUrl,
+        tags,
+        link,
+        isPublished: isPublished ?? true,
+      })
+      .returning();
 
-    return NextResponse.json({ post }, { status: 201 });
+    return NextResponse.json(result[0], { status: 201 });
   } catch (error) {
-    console.error("Failed to create post:", error);
+    console.error("Error creating post:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
 }
-

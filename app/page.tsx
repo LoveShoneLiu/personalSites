@@ -1,173 +1,247 @@
+import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.scss";
-import { listPosts, type BlogPost } from "@/lib/posts";
-import { checkDbConnection } from "./db";
 
-const experiences = [
-  {
-    company: "Neon • 资深前端工程师",
-    duration: "2023 - 至今",
-    highlights: [
-      "负责 Vercel Marketplace 集成，为开发者提供一键接入 Neon 数据库的体验。",
-      "搭建多租户 UI 基础设施，推动团队组件库统一。",
-    ],
-  },
-  {
-    company: "Vercel • 全栈工程师",
-    duration: "2020 - 2023",
-    highlights: [
-      "为 Next.js 模板生态贡献 20+ 个示例，涵盖数据可视化、实时协作等场景。",
-      "主导 Turbopack 预览阶段的性能监控平台，缩短问题定位时间 40%。",
-    ],
-  },
-  {
-    company: "自由职业者",
-    duration: "2017 - 2020",
-    highlights: [
-      "帮助多家初创团队搭建 MVP，并交付数据驱动的管理后台。",
-      "与设计师、产品紧密协作，提供端到端的体验优化。",
-    ],
-  },
-];
-
-const skills = [
-  "TypeScript",
-  "Next.js",
-  "React Server Components",
-  "Neon Postgres",
-  "Drizzle ORM",
-  "Node.js",
-  "SCSS / CSS Modules",
-  "Edge Functions",
-];
-
-const contact = [
-  { label: "邮箱", value: "hello@shaofeiliu.dev" },
-  { label: "所在地", value: "上海 · Remote" },
-  { label: "当前状态", value: "接收远程合作 / 技术顾问" },
-];
-
-export default async function HomePage() {
-  let recentPosts: BlogPost[] = [];
-  let postsError: string | null = null;
-
-  try {
-    recentPosts = await listPosts(3);
-  } catch (error) {
-    postsError =
-      error instanceof Error
-        ? error.message
-        : "暂时无法加载最新文章，请稍后再试。";
+// 个人信息
+const personalInfo = {
+  name: "Shaofei Liu",
+  title: "Full Stack Developer",
+  avatar: "/avatar.jpg", // 需要添加头像图片
+  email: "shaofei.liu@example.com",
+  phone: "+64 21 XXX XXXX",
+  location: "New Zealand",
+  bio: "Passionate full-stack developer with expertise in React, Next.js, and modern web technologies. Seeking opportunities to contribute to innovative projects in New Zealand.",
+  skills: [
+    "React", "Next.js", "TypeScript", "Node.js",
+    "PostgreSQL", "MongoDB", "REST API", "GraphQL",
+    "AWS", "Docker", "Git", "Agile"
+  ],
+  social: {
+    github: "https://github.com/yourusername",
+    linkedin: "https://linkedin.com/in/yourusername",
+    email: "mailto:shaofei.liu@example.com"
   }
+};
 
-  const dbStatus = await checkDbConnection();
+// 工作经历
+const workExperience = [
+  {
+    id: 1,
+    company: "Tech Company A",
+    position: "Senior Full Stack Developer",
+    period: "2022 - Present",
+    location: "Remote",
+    description: "Led development of enterprise web applications using React and Node.js",
+    projects: [
+      {
+        name: "E-commerce Platform",
+        description: "Built a scalable e-commerce platform serving 100K+ users",
+        technologies: ["Next.js", "PostgreSQL", "Redis", "AWS"]
+      },
+      {
+        name: "Admin Dashboard",
+        description: "Developed comprehensive admin dashboard with real-time analytics",
+        technologies: ["React", "TypeScript", "GraphQL", "D3.js"]
+      }
+    ]
+  },
+  {
+    id: 2,
+    company: "Tech Company B",
+    position: "Full Stack Developer",
+    period: "2020 - 2022",
+    location: "City, Country",
+    description: "Developed and maintained multiple client-facing web applications",
+    projects: [
+      {
+        name: "CRM System",
+        description: "Built customer relationship management system from scratch",
+        technologies: ["React", "Node.js", "MongoDB", "Docker"]
+      }
+    ]
+  }
+];
 
+// 教育背景
+const education = [
+  {
+    id: 1,
+    school: "University Name",
+    degree: "Bachelor of Computer Science",
+    period: "2016 - 2020",
+    location: "City, Country",
+    achievements: [
+      "GPA: 3.8/4.0",
+      "Dean's List (2018, 2019)",
+      "Graduated with Honors"
+    ]
+  }
+];
+
+export default function HomePage() {
   return (
-    <div className={styles.home}>
+    <div className={styles.homePage}>
+      {/* Hero Section */}
       <section className={styles.hero}>
-        <p className={styles.heroEyebrow}>个人主页 · 简历</p>
-        <h1>刘少飞 · 全栈工程师</h1>
-        <p className={styles.heroIntro}>
-          擅长以产品视角构建前后端一体化体验。专注 Next.js、Neon
-          Postgres 以及现代数据层，喜欢把复杂需求拆解成清晰、可扩展的模块。
-        </p>
-        <div className={styles.heroMeta}>
-          <div>
-            <span className={styles.metaLabel}>职业定位</span>
-            <strong>Senior Full-stack / Tech Lead</strong>
-          </div>
-          <div>
-            <span className={styles.metaLabel}>关注方向</span>
-            <strong>开发者平台 · 数据应用 · SaaS</strong>
-          </div>
-          <div className={styles.metaActions}>
-            <Link href="/blog">查看博客</Link>
-            <a href="mailto:hello@shaofeiliu.dev">联系我</a>
+        <div className="container">
+          <div className={styles.heroContent}>
+            <div className={styles.heroText}>
+              <h1 className={styles.heroTitle}>
+                Hi, I'm <span className={styles.highlight}>{personalInfo.name}</span>
+              </h1>
+              <p className={styles.heroSubtitle}>{personalInfo.title}</p>
+              <p className={styles.heroBio}>{personalInfo.bio}</p>
+              <div className={styles.heroButtons}>
+                <a href={personalInfo.social.email} className={styles.primaryButton}>
+                  Get in Touch
+                </a>
+                <Link href="/blog" className={styles.secondaryButton}>
+                  View Blog
+                </Link>
+              </div>
+            </div>
+            <div className={styles.heroImage}>
+              <div className={styles.avatarWrapper}>
+                <div className={styles.avatarGlow}></div>
+                <div className={styles.avatar}>
+                  <span className={styles.avatarPlaceholder}>SF</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2>经历</h2>
-          <p>打造稳定、可维护且可观测的产品体验。</p>
-        </div>
-        <div className={styles.timeline}>
-          {experiences.map((exp) => (
-            <article key={exp.company} className={styles.timelineItem}>
-              <header>
-                <h3>{exp.company}</h3>
-                <span>{exp.duration}</span>
-              </header>
-              <ul>
-                {exp.highlights.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </article>
-          ))}
+      {/* Contact Info */}
+      <section className={styles.contactSection}>
+        <div className="container">
+          <div className={styles.contactCards}>
+            <div className={styles.contactCard}>
+              <div className={styles.contactIcon}>📧</div>
+              <div className={styles.contactLabel}>Email</div>
+              <a href={`mailto:${personalInfo.email}`} className={styles.contactValue}>
+                {personalInfo.email}
+              </a>
+            </div>
+            <div className={styles.contactCard}>
+              <div className={styles.contactIcon}>📱</div>
+              <div className={styles.contactLabel}>Phone</div>
+              <div className={styles.contactValue}>{personalInfo.phone}</div>
+            </div>
+            <div className={styles.contactCard}>
+              <div className={styles.contactIcon}>📍</div>
+              <div className={styles.contactLabel}>Location</div>
+              <div className={styles.contactValue}>{personalInfo.location}</div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2>技能与工具</h2>
-          <p>偏好类型安全、自动化测试与 CI/CD 全流程。</p>
-        </div>
-        <div className={styles.skillGrid}>
-          {skills.map((skill) => (
-            <span key={skill}>{skill}</span>
-          ))}
-        </div>
-        <div className={styles.contactCard}>
-          <h3>联系信息</h3>
-          <dl>
-            {contact.map((item) => (
-              <div key={item.label}>
-                <dt>{item.label}</dt>
-                <dd>{item.value}</dd>
+      {/* Skills Section */}
+      <section className={`${styles.section} ${styles.skillsSection}`}>
+        <div className="container">
+          <h2 className={styles.sectionTitle}>Skills & Technologies</h2>
+          <div className={styles.skillsGrid}>
+            {personalInfo.skills.map((skill, index) => (
+              <div key={index} className={styles.skillTag}>
+                {skill}
               </div>
             ))}
-          </dl>
-          <div
-            className={`${styles.statusChip} ${
-              dbStatus === "Database connected"
-                ? styles.statusSuccess
-                : styles.statusDanger
-            }`}
-          >
-            数据库：{dbStatus}
           </div>
         </div>
       </section>
 
-      <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2>最新博文</h2>
-          <Link href="/blog">查看全部文章 →</Link>
-        </div>
-        {postsError ? (
-          <p className={styles.note}>{postsError}</p>
-        ) : recentPosts.length === 0 ? (
-          <p className={styles.note}>暂无文章，敬请期待。</p>
-        ) : (
-          <div className={styles.postGrid}>
-            {recentPosts.map((post) => (
-              <article key={post.id} className={styles.postCard}>
-                <p className={styles.postDate}>
-                  {new Date(post.publishedAt).toLocaleDateString("zh-CN", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </p>
-                <h3>{post.title}</h3>
-                <p>{post.summary}</p>
-                <Link href="/blog">阅读全文 →</Link>
-              </article>
+      {/* Work Experience Section */}
+      <section className={`${styles.section} ${styles.experienceSection}`}>
+        <div className="container">
+          <h2 className={styles.sectionTitle}>Work Experience</h2>
+          <div className={styles.timeline}>
+            {workExperience.map((job) => (
+              <div key={job.id} className={styles.timelineItem}>
+                <div className={styles.timelineDot}></div>
+                <div className={styles.timelineContent}>
+                  <div className={styles.jobHeader}>
+                    <div>
+                      <h3 className={styles.jobPosition}>{job.position}</h3>
+                      <p className={styles.jobCompany}>{job.company}</p>
+                    </div>
+                    <div className={styles.jobMeta}>
+                      <span className={styles.jobPeriod}>{job.period}</span>
+                      <span className={styles.jobLocation}>{job.location}</span>
+                    </div>
+                  </div>
+                  <p className={styles.jobDescription}>{job.description}</p>
+                  {job.projects && (
+                    <div className={styles.projects}>
+                      <h4 className={styles.projectsTitle}>Key Projects:</h4>
+                      {job.projects.map((project, idx) => (
+                        <div key={idx} className={styles.project}>
+                          <h5 className={styles.projectName}>{project.name}</h5>
+                          <p className={styles.projectDescription}>{project.description}</p>
+                          <div className={styles.projectTech}>
+                            {project.technologies.map((tech, techIdx) => (
+                              <span key={techIdx} className={styles.techBadge}>
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
-        )}
+        </div>
+      </section>
+
+      {/* Education Section */}
+      <section className={`${styles.section} ${styles.educationSection}`}>
+        <div className="container">
+          <h2 className={styles.sectionTitle}>Education</h2>
+          <div className={styles.educationGrid}>
+            {education.map((edu) => (
+              <div key={edu.id} className={styles.educationCard}>
+                <div className={styles.educationIcon}>🎓</div>
+                <h3 className={styles.educationDegree}>{edu.degree}</h3>
+                <p className={styles.educationSchool}>{edu.school}</p>
+                <div className={styles.educationMeta}>
+                  <span>{edu.period}</span>
+                  <span>{edu.location}</span>
+                </div>
+                {edu.achievements && (
+                  <ul className={styles.achievements}>
+                    {edu.achievements.map((achievement, idx) => (
+                      <li key={idx}>{achievement}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className={styles.ctaSection}>
+        <div className="container">
+          <div className={styles.ctaContent}>
+            <h2 className={styles.ctaTitle}>Let's Work Together</h2>
+            <p className={styles.ctaText}>
+              I'm currently seeking new opportunities in New Zealand. 
+              Let's connect and discuss how I can contribute to your team.
+            </p>
+            <div className={styles.ctaButtons}>
+              <a href={personalInfo.social.email} className={styles.primaryButton}>
+                Contact Me
+              </a>
+              <a href={personalInfo.social.linkedin} target="_blank" rel="noopener noreferrer" className={styles.secondaryButton}>
+                LinkedIn Profile
+              </a>
+            </div>
+          </div>
+        </div>
       </section>
     </div>
   );
