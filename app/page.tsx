@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import styles from "./page.module.scss";
+import avatarImg from "@/assets/shaofeiliu.jpg";
 
 // 个人信息
 const personalInfo = {
@@ -112,7 +113,14 @@ export default function HomePage() {
               <div className={styles.avatarWrapper}>
                 <div className={styles.avatarGlow}></div>
                 <div className={styles.avatar}>
-                  <span className={styles.avatarPlaceholder}>SF</span>
+                  <Image
+                    src={avatarImg}
+                    alt={personalInfo.name}
+                    fill
+                    sizes="300px"
+                    className={styles.avatarImage}
+                    priority
+                  />
                 </div>
               </div>
             </div>
