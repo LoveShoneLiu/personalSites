@@ -91,13 +91,21 @@ export default function HomePage() {
               </h1>
               <p className={styles.heroSubtitle}>{personalInfo.title}</p>
               <p className={styles.heroBio}>{personalInfo.bio}</p>
-              <div className={styles.heroButtons}>
-                <a href={personalInfo.social.email} className={styles.primaryButton}>
-                  Get in Touch
-                </a>
-                <Link href="/blog" className={styles.secondaryButton}>
-                  View Blog
-                </Link>
+              <div className={styles.heroContact}>
+                <div className={styles.heroContactItem}>
+                  <span className={styles.heroContactIcon}>📧</span>
+                  <a href={`mailto:${personalInfo.email}`} className={styles.heroContactLink}>
+                    {personalInfo.email}
+                  </a>
+                </div>
+                <div className={styles.heroContactItem}>
+                  <span className={styles.heroContactIcon}>📱</span>
+                  <span className={styles.heroContactText}>{personalInfo.phone}</span>
+                </div>
+                <div className={styles.heroContactItem}>
+                  <span className={styles.heroContactIcon}>📍</span>
+                  <span className={styles.heroContactText}>{personalInfo.location}</span>
+                </div>
               </div>
             </div>
             <div className={styles.heroImage}>
@@ -107,31 +115,6 @@ export default function HomePage() {
                   <span className={styles.avatarPlaceholder}>SF</span>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Info */}
-      <section className={styles.contactSection}>
-        <div className="container">
-          <div className={styles.contactCards}>
-            <div className={styles.contactCard}>
-              <div className={styles.contactIcon}>📧</div>
-              <div className={styles.contactLabel}>Email</div>
-              <a href={`mailto:${personalInfo.email}`} className={styles.contactValue}>
-                {personalInfo.email}
-              </a>
-            </div>
-            <div className={styles.contactCard}>
-              <div className={styles.contactIcon}>📱</div>
-              <div className={styles.contactLabel}>Phone</div>
-              <div className={styles.contactValue}>{personalInfo.phone}</div>
-            </div>
-            <div className={styles.contactCard}>
-              <div className={styles.contactIcon}>📍</div>
-              <div className={styles.contactLabel}>Location</div>
-              <div className={styles.contactValue}>{personalInfo.location}</div>
             </div>
           </div>
         </div>

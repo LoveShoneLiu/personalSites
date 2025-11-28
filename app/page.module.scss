@@ -78,54 +78,55 @@
   margin-bottom: var(--spacing-2xl);
 }
 
-.heroButtons {
+.heroContact {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-lg);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--color-border-light);
 }
 
-.primaryButton {
-  padding: var(--spacing-md) var(--spacing-2xl);
-  background: var(--gradient-primary);
-  color: white;
-  border-radius: var(--radius-full);
-  font-weight: 600;
-  transition: all var(--transition-base);
-  box-shadow: var(--shadow-md);
-  border: none;
-  font-size: 1rem;
-  letter-spacing: 0.01em;
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-xl);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-}
-
-.secondaryButton {
-  padding: var(--spacing-md) var(--spacing-2xl);
+.heroContactItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) 0;
   background: transparent;
-  color: var(--color-primary);
-  border: 2px solid var(--color-primary);
-  border-radius: var(--radius-full);
-  font-weight: 600;
-  transition: all var(--transition-base);
-  font-size: 1rem;
-  letter-spacing: 0.01em;
+  border: none;
+  transition: all var(--transition-fast);
+  box-shadow: none;
 
   &:hover {
-    background: var(--color-primary);
-    color: white;
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: none;
+    box-shadow: none;
+    border: none;
+    background: transparent;
   }
+}
 
-  &:active {
-    transform: translateY(0);
+.heroContactIcon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.heroContactLink {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  font-size: 0.95rem;
+  transition: color var(--transition-fast);
+
+  &:hover {
+    color: var(--color-primary);
+    text-decoration: underline;
   }
+}
+
+.heroContactText {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+  font-size: 0.95rem;
 }
 
 .heroImage {
@@ -169,70 +170,6 @@
   color: white;
 }
 
-// Contact Section
-.contactSection {
-  padding: var(--spacing-3xl) 0;
-  background: var(--color-bg);
-}
-
-.contactCards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: var(--spacing-xl);
-}
-
-.contactCard {
-  background: var(--color-surface);
-  padding: var(--spacing-2xl);
-  border-radius: var(--radius-2xl);
-  text-align: center;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-base);
-  border: 1px solid var(--color-border-light);
-  position: relative;
-  overflow: hidden;
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: var(--gradient-primary);
-    transform: scaleX(0);
-    transition: transform var(--transition-base);
-  }
-
-  &:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-lg);
-    border-color: var(--color-primary-light);
-
-    &::before {
-      transform: scaleX(1);
-    }
-  }
-}
-
-.contactIcon {
-  font-size: 2.5rem;
-  margin-bottom: var(--spacing-md);
-}
-
-.contactLabel {
-  font-size: 0.875rem;
-  color: var(--color-text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: var(--spacing-sm);
-}
-
-.contactValue {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--color-text);
-}
 
 // Skills Section
 .section {
@@ -540,7 +477,58 @@
   display: flex;
   gap: var(--spacing-lg);
   justify-content: center;
+}
 
+.primaryButton {
+  padding: var(--spacing-md) var(--spacing-2xl);
+  background: var(--gradient-primary);
+  color: white;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+  border: none;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  display: inline-block;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-xl);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.secondaryButton {
+  padding: var(--spacing-md) var(--spacing-2xl);
+  background: transparent;
+  color: var(--color-primary);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  transition: all var(--transition-base);
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  display: inline-block;
+
+  &:hover {
+    background: var(--color-primary);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.ctaButtons {
   .primaryButton {
     background: white;
     color: var(--color-primary);
@@ -604,8 +592,23 @@
     font-size: 1.25rem;
   }
 
-  .heroButtons {
+  .heroContact {
     flex-direction: column;
+    gap: var(--spacing-sm);
+    align-items: flex-start;
+  }
+
+  .heroContactItem {
+    padding: var(--spacing-xs) 0;
+  }
+
+  .heroContactIcon {
+    font-size: 1rem;
+  }
+
+  .heroContactLink,
+  .heroContactText {
+    font-size: 0.875rem;
   }
 
   .sectionTitle {
