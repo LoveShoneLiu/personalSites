@@ -273,9 +273,9 @@
   margin-top: var(--spacing-2xl);
 }
 
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+.postsGrid {
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-xl);
 }
 

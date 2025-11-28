@@ -364,7 +364,7 @@ export default function ManagePage() {
                 </button>
               </div>
             ) : (
-              <div className={styles.grid}>
+              <div className={styles.postsGrid}>
                 {posts.map((post) => (
                   <div key={post.id} className={styles.postCard}>
                     <div className={styles.postHeader}>

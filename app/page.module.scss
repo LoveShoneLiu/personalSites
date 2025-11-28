@@ -36,13 +36,24 @@
 }
 
 .heroContent {
-  display: grid;
-  grid-template-columns: 1.7fr 1fr;
+  display: flex;
   gap: var(--spacing-3xl);
   align-items: center;
   position: relative;
   z-index: 1;
   padding: var(--spacing-3xl) 0;
+}
+
+.heroText {
+  flex: 1.7;
+}
+
+.heroImage {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  animation: fadeIn 1s ease-out 0.3s both;
+  flex: 1;
 }
 
 .heroText {
@@ -374,11 +385,13 @@
 }
 
 .educationGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: var(--spacing-xl);
-  max-width: 900px;
+  width: 100%;
   margin: 0 auto;
+  justify-content: center;
+  align-items: stretch;
 }
 
 .educationCard {
@@ -387,10 +400,34 @@
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-md);
   transition: all var(--transition-base);
+  border: 1px solid var(--color-border-light);
+  position: relative;
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: radial-gradient(circle at top left, rgba(180, 83, 9, 0.35), transparent 55%);
+    -webkit-mask: 
+      linear-gradient(#000 0 0) content-box, 
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: 0;
+    transition: opacity var(--transition-base);
+  }
 
   &:hover {
     transform: translateY(-5px);
     box-shadow: var(--shadow-lg);
+    &::before {
+      opacity: 1;
+    }
   }
 }
 
@@ -553,7 +590,7 @@
 // Responsive Design
 @media (max-width: 968px) {
   .heroContent {
-    grid-template-columns: 1fr;
+    flex-direction: column;
     gap: var(--spacing-2xl);
   }
 
