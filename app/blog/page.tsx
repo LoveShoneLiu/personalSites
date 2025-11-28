@@ -14,21 +14,31 @@ async function getPaginatedPosts(page: number, pageSize: number) {
   try {
     const offset = (page - 1) * pageSize;
 
+    // 优化：只查询需要的字段，减少数据传输
     const [items, totalResult] = await Promise.all([
       db
-        .select()
+        .select({
+          id: posts.id,
+          title: posts.title,
+          description: posts.description,
+          imageUrl: posts.imageUrl,
+          tags: posts.tags,
+          link: posts.link,
+          createdAt: posts.createdAt,
+        })
         .from(posts)
         .where(eq(posts.isPublished, true))
         .orderBy(desc(posts.createdAt))
         .limit(pageSize)
         .offset(offset),
+      // 优化：使用更高效的 count 查询
       db
-        .select({ count: sql<number>`count(*)` })
+        .select({ count: sql<number>`count(*)::int` })
         .from(posts)
         .where(eq(posts.isPublished, true)),
     ]);
 
-    const total = totalResult[0]?.count ?? 0;
+    const total = Number(totalResult[0]?.count ?? 0);
     return { items, total };
   } catch (error) {
     console.error("Error fetching posts:", error);
