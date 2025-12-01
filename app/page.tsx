@@ -1,12 +1,10 @@
-import Image from "next/image";
 import styles from "./page.module.scss";
-import avatarImg from "@/assets/shaofeiliu.jpg";
 
 // 个人信息
 const personalInfo = {
   name: "Shaofei Liu",
   title: "Senior Frontend Engineer",
-  avatar: "/avatar.jpg", // 实际头像由 next/image 的静态资源 avatarImg 提供
+  avatar: "/shaofeiliu.jpg", // 位于 public 目录下的头像图片
   email: "isshaofeiliu@gmail.com",
   phone: "+64 (029) 0255 5581",
   location: "Auckland, New Zealand",
@@ -175,13 +173,10 @@ export default function HomePage() {
               <div className={styles.avatarWrapper}>
                 <div className={styles.avatarGlow}></div>
                 <div className={styles.avatar}>
-                  <Image
-                    src={avatarImg}
+                  <img
+                    src={personalInfo.avatar}
                     alt={personalInfo.name}
-                    fill
-                    sizes="300px"
                     className={styles.avatarImage}
-                    priority
                   />
                 </div>
               </div>
