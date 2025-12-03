@@ -18,12 +18,12 @@ const personalInfo = {
   ],
   skills: [
     "JavaScript",
-    "TypeScript",
     "HTML & CSS",
     "React",
     "Vue.js",
     "Next.js",
     "Node.js",
+    "TypeScript",
     "Web Performance Optimization",
     "Frontend Architecture",
     "Monitoring & Error Tracking",
