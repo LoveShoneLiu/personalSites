@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import styles from "./page.module.scss";
 
 // 个人信息
@@ -131,7 +134,45 @@ const education = [
   }
 ];
 
+// 荣誉与个人成就
+const honors = [
+  {
+    title: "Patent & Innovation",
+    description:
+      "Filed a business-related patent, demonstrating my strong sense of ownership and continuous drive to explore and improve.",
+    image: "/honors/专利&月捐证书截图.jpg",
+  },
+  {
+    title: "Long-term Commitment",
+    description:
+      "My overall performance has been recognized by the company, which granted me 3-year and 5-year service anniversary awards.",
+    image: "/honors/入职3年&入职5年&月捐记念玩偶.png",
+  },
+  {
+    title: "Charity & Social Responsibility",
+    description:
+      "Recognized as an employee charity monthly donor, supporting children in need through long-term monthly donations.",
+    image: "/honors/月捐详情.PNG",
+  },
+  {
+    title: "Membership Project Team Award",
+    description:
+      "Recognized as part of the Meituan membership project team, delivering measurable impact to the business.",
+    image: "/honors/会员提效项目团队.png",
+  },
+  {
+    title: "Collaboration Star – Quarterly Excellence",
+    description:
+      "Awarded the Collaboration Star in Meituan's quarterly excellence evaluation, highlighting strong cross-team collaboration.",
+    image: "/honors/季度评优.png",
+  },
+];
+
+type Honor = (typeof honors)[number];
+
 export default function HomePage() {
+  const [activeHonor, setActiveHonor] = useState<Honor | null>(null);
+
   return (
     <div className={styles.homePage}>
       {/* Hero Section */}
@@ -244,6 +285,75 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Honors Section */}
+      <section className={`${styles.section} ${styles.honorsSection}`}>
+        <div className="container">
+          <div className={styles.honorsContent}>
+            <div className={styles.honorsText}>
+              <h2 className={styles.sectionTitle}>Honors & Personal Achievements</h2>
+              <p className={styles.honorsIntro}>
+                Beyond day-to-day development work, I have been recognized for technical excellence,
+                collaboration, long-term commitment, and social responsibility.
+              </p>
+              <ul className={styles.honorsList}>
+                <li>Project team award and Collaboration Star Award at Meituan.</li>
+                <li>Filed one patent in the frontend engineering domain.</li>
+                <li>3-year and 5-year service anniversary awards.</li>
+                <li>Long-term charity monthly donor recognition.</li>
+              </ul>
+            </div>
+            {/* 第一排：3 列 */}
+            <div className={styles.honorsGridTop}>
+              {honors.slice(0, 3).map((item) => (
+                <button
+                  key={item.title}
+                  type="button"
+                  className={styles.honorCard}
+                  onClick={() => setActiveHonor(item)}
+                >
+                  <div className={styles.honorImageWrapper}>
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className={styles.honorImage}
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className={styles.honorInfo}>
+                    <h3 className={styles.honorTitle}>{item.title}</h3>
+                    <p className={styles.honorDescription}>{item.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+            {/* 第二排：2 列 */}
+            <div className={styles.honorsGridBottom}>
+              {honors.slice(3).map((item) => (
+                <button
+                  key={item.title}
+                  type="button"
+                  className={styles.honorCard}
+                  onClick={() => setActiveHonor(item)}
+                >
+                  <div className={styles.honorImageWrapper}>
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className={styles.honorImage}
+                      loading="lazy"
+                    />
+                  </div>
+                  <div className={styles.honorInfo}>
+                    <h3 className={styles.honorTitle}>{item.title}</h3>
+                    <p className={styles.honorDescription}>{item.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Education Section */}
       <section className={`${styles.section} ${styles.educationSection}`}>
         <div className="container">
@@ -298,6 +408,40 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {activeHonor && (
+        <div
+          className={styles.honorModalBackdrop}
+          onClick={() => setActiveHonor(null)}
+        >
+          <div
+            className={styles.honorModal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={styles.honorModalClose}
+              onClick={() => setActiveHonor(null)}
+              aria-label="Close image preview"
+            >
+              ×
+            </button>
+            <div className={styles.honorModalImageWrapper}>
+              <img
+                src={activeHonor.image}
+                alt={activeHonor.title}
+                className={styles.honorModalImage}
+              />
+            </div>
+            <div className={styles.honorModalInfo}>
+              <h3 className={styles.honorModalTitle}>{activeHonor.title}</h3>
+              <p className={styles.honorModalDescription}>
+                {activeHonor.description}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
