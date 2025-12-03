@@ -140,31 +140,31 @@ const honors = [
     title: "Patent & Innovation",
     description:
       "Filed a business-related patent, demonstrating my strong sense of ownership and continuous drive to explore and improve.",
-    image: "/honors/专利&月捐证书截图.jpg",
+    image: "/honors/patent-and-donation-cert.jpg",
   },
   {
     title: "Long-term Commitment",
     description:
       "My overall performance has been recognized by the company, which granted me 3-year and 5-year service anniversary awards.",
-    image: "/honors/入职3年&入职5年&月捐记念玩偶.png",
+    image: "/honors/service-anniversary-donation-toys.png",
   },
   {
     title: "Charity & Social Responsibility",
     description:
       "Recognized as an employee charity monthly donor, supporting children in need through long-term monthly donations.",
-    image: "/honors/月捐详情.PNG",
+    image: "/honors/monthly-donation-detail.png",
   },
   {
     title: "Membership Project Team Award",
     description:
       "Recognized as part of the Meituan membership project team, delivering measurable impact to the business.",
-    image: "/honors/会员提效项目团队.png",
+    image: "/honors/membership-team-award.png",
   },
   {
     title: "Collaboration Star – Quarterly Excellence",
     description:
       "Awarded the Collaboration Star in Meituan's quarterly excellence evaluation, highlighting strong cross-team collaboration.",
-    image: "/honors/季度评优.png",
+    image: "/honors/collaboration-star.png",
   },
 ];
 
