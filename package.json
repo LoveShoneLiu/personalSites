@@ -25,9 +25,9 @@
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.44.7",
     "framer-motion": "^11.15.0",
-    "next": "15.5.3",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "next": "15.5.7",
+    "react": "19.1.2",
+    "react-dom": "19.1.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
