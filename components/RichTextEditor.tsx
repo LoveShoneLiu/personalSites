@@ -5,7 +5,11 @@ import { EditorContent, useEditor, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
 import { ImageResize } from "./ImageResizeExtension";
+import HeadingDropdown from "./HeadingDropdown";
+import ListDropdown from "./ListDropdown";
 import styles from "./RichTextEditor.module.scss";
 
 type RichTextEditorProps = {
@@ -43,6 +47,10 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
       ImageResize.configure({
         inline: true,
         allowBase64: true,
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
       }),
     ],
     content: value || "",
@@ -168,27 +176,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
     <div className={styles.editorWrapper}>
       <div className={styles.toolbar}>
         <div className={styles.toolbarGroup}>
-          <button
-            type="button"
-            className={editor.isActive("heading", { level: 1 }) ? styles.active : ""}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-          >
-            H1
-          </button>
-          <button
-            type="button"
-            className={editor.isActive("heading", { level: 2 }) ? styles.active : ""}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          >
-            H2
-          </button>
-          <button
-            type="button"
-            className={editor.isActive("heading", { level: 3 }) ? styles.active : ""}
-            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          >
-            H3
-          </button>
+          <HeadingDropdown editor={editor} />
         </div>
 
         <div className={styles.toolbarGroup}>
@@ -223,20 +211,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
         </div>
 
         <div className={styles.toolbarGroup}>
-          <button
-            type="button"
-            className={editor.isActive("bulletList") ? styles.active : ""}
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-          >
-            • List
-          </button>
-          <button
-            type="button"
-            className={editor.isActive("orderedList") ? styles.active : ""}
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          >
-            1. List
-          </button>
+          <ListDropdown editor={editor} />
           <button
             type="button"
             className={editor.isActive("blockquote") ? styles.active : ""}

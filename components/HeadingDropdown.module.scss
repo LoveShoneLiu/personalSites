@@ -1,0 +1,87 @@
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdownButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+
+  &:hover {
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--color-text);
+  }
+
+  &.active {
+    color: var(--color-primary);
+  }
+}
+
+.chevron {
+  font-size: 0.6rem;
+  opacity: 0.7;
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.25rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  min-width: 180px;
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--color-text);
+
+  &:hover {
+    background: var(--color-bg-secondary);
+  }
+
+  &.isSelected {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-primary);
+  }
+}
+
+.menuIcon {
+  font-weight: 600;
+  font-size: 0.875rem;
+  min-width: 2rem;
+  color: var(--color-text-secondary);
+  
+  .isSelected & {
+    color: var(--color-primary);
+  }
+}
+
+.menuLabel {
+  font-size: 0.875rem;
+  flex: 1;
+}
+

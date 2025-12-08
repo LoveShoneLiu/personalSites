@@ -88,6 +88,47 @@
     margin-bottom: var(--spacing-xs);
   }
 
+  // 任务列表样式
+  ul[data-type="taskList"] {
+    list-style: none;
+    padding-left: 0;
+
+    li {
+      display: flex;
+      align-items: flex-start;
+      margin-bottom: var(--spacing-sm);
+
+      > label {
+        flex: 0 0 auto;
+        margin-right: var(--spacing-sm);
+        user-select: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        margin-top: 0.2rem;
+      }
+
+      > div {
+        flex: 1 1 auto;
+      }
+
+      input[type="checkbox"] {
+        cursor: pointer;
+        width: 1.2em;
+        height: 1.2em;
+        margin: 0;
+        accent-color: var(--color-primary);
+      }
+
+      &[data-checked="true"] {
+        > div {
+          opacity: 0.6;
+          text-decoration: line-through;
+        }
+      }
+    }
+  }
+
   blockquote {
     margin: var(--spacing-lg) 0;
     padding: var(--spacing-md) var(--spacing-lg);
