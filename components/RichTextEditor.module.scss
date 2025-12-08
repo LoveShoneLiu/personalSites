@@ -135,6 +135,53 @@
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-md);
   }
+
+  // 图片调整大小相关样式
+  :global(.image-resize-wrapper) {
+    position: relative;
+    display: inline-block;
+    margin: 1rem 0;
+    max-width: 100%;
+
+    &:hover {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 2px;
+    }
+
+    img {
+      display: block;
+      margin: 0;
+    }
+  }
+
+  :global(.image-resize-handle) {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 4px 0 0 0;
+    cursor: nwse-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 10;
+    user-select: none;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      background: var(--color-primary-dark, #2563eb);
+    }
+  }
+
+  :global(.image-resize-wrapper:hover .image-resize-handle) {
+    opacity: 1;
+  }
 }
 
 @media (max-width: 640px) {

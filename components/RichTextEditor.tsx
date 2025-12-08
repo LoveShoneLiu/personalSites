@@ -4,8 +4,8 @@ import { useEffect, useCallback, useRef, useState } from "react";
 import { EditorContent, useEditor, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
-import Image from "@tiptap/extension-image";
 import Underline from "@tiptap/extension-underline";
+import { ImageResize } from "./ImageResizeExtension";
 import styles from "./RichTextEditor.module.scss";
 
 type RichTextEditorProps = {
@@ -40,7 +40,7 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
         openOnClick: true,
         autolink: true,
       }),
-      Image.configure({
+      ImageResize.configure({
         inline: true,
         allowBase64: true,
       }),
