@@ -48,6 +48,15 @@
   padding: var(--spacing-md);
 }
 
+.loadingPlaceholder {
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
 .editorBody :global(.tiptap-editor) {
   min-height: 300px;
   outline: none;

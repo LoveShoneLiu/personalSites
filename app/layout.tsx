@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import styles from "./layout.module.scss";
 import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Shaofei Liu - Full Stack Developer",
@@ -22,14 +23,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
+      <body suppressHydrationWarning>
         <Header />
         <main className={styles.main}>{children}</main>
-        <footer className={styles.footer}>
-          <div className="container">
-            <p>© {new Date().getFullYear()} Shaofei Liu. Built with Next.js & Neon.</p>
-          </div>
-        </footer>
+        <Footer />
       </body>
     </html>
   );

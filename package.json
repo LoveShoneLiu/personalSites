@@ -13,17 +13,19 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
+    "@tiptap/extension-image": "^3.13.0",
+    "@tiptap/extension-link": "^3.13.0",
+    "@tiptap/extension-placeholder": "^3.13.0",
+    "@tiptap/extension-underline": "^3.13.0",
+    "@tiptap/react": "^3.13.0",
+    "@tiptap/starter-kit": "^3.13.0",
+    "@tiptap/suggestion": "^3.13.0",
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.44.7",
-    "@tiptap/react": "^2.7.2",
-    "@tiptap/starter-kit": "^2.7.2",
-    "@tiptap/extension-link": "^2.7.2",
-    "@tiptap/extension-image": "^2.7.2",
-    "@tiptap/extension-underline": "^2.7.2",
+    "framer-motion": "^11.15.0",
     "next": "15.5.3",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "framer-motion": "^11.15.0"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
