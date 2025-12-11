@@ -3,10 +3,10 @@
 
 // 格式化日期
 export function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString("zh-CN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+  return new Date(date).toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   });
 }
 
@@ -14,13 +14,12 @@ export function formatDate(date: Date | string): string {
 export function parseTags(tagsStr?: string | null): string[] {
   if (!tagsStr) return [];
   return tagsStr
-    .split(",")
+    .split(',')
     .map((tag) => tag.trim())
     .filter((tag) => tag);
 }
 
 // 序列化标签
 export function serializeTags(tags: string[]): string {
-  return tags.join(",");
+  return tags.join(',');
 }
-

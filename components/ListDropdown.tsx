@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Editor } from '@tiptap/core';
+import type { Editor } from '@tiptap/react';
 import styles from './ListDropdown.module.scss';
 
 interface ListDropdownProps {
   editor: Editor;
 }
 
-export default function ListDropdown({ editor }: ListDropdownProps) {
+const ListDropdown = ({ editor }: ListDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +65,9 @@ export default function ListDropdown({ editor }: ListDropdownProps) {
   }, [isOpen]);
 
   const currentList = getCurrentList();
-  const isListActive = editor.isActive('bulletList') || editor.isActive('orderedList') || editor.isActive('taskList');
+  const isListActive = editor.isActive('bulletList')
+    || editor.isActive('orderedList')
+    || editor.isActive('taskList');
 
   return (
     <div className={styles.dropdown} ref={dropdownRef}>
@@ -80,10 +82,9 @@ export default function ListDropdown({ editor }: ListDropdownProps) {
       {isOpen && (
         <div className={styles.dropdownMenu}>
           {lists.map((list) => {
-            const isActive =
-              (list.type === 'bullet' && editor.isActive('bulletList')) ||
-              (list.type === 'ordered' && editor.isActive('orderedList')) ||
-              (list.type === 'task' && editor.isActive('taskList'));
+            const isActive = (list.type === 'bullet' && editor.isActive('bulletList'))
+              || (list.type === 'ordered' && editor.isActive('orderedList'))
+              || (list.type === 'task' && editor.isActive('taskList'));
 
             return (
               <button
@@ -101,5 +102,6 @@ export default function ListDropdown({ editor }: ListDropdownProps) {
       )}
     </div>
   );
-}
+};
 
+export default ListDropdown;

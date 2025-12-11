@@ -1,9 +1,9 @@
-import Link from "next/link";
-import Image from "next/image";
-import { db, posts } from "@/lib/db";
-import { desc, eq, sql } from "drizzle-orm";
-import { parseTags, formatDate } from "@/lib/utils";
-import styles from "./page.module.scss";
+import Link from 'next/link';
+import Image from 'next/image';
+import { db, posts } from '@/lib/db';
+import { desc, eq, sql } from 'drizzle-orm';
+import { parseTags, formatDate } from '@/lib/utils';
+import styles from './page.module.scss';
 
 // ISR: Revalidate every 60 seconds
 export const revalidate = 60;
@@ -41,7 +41,8 @@ async function getPaginatedPosts(page: number, pageSize: number) {
     const total = Number(totalResult[0]?.count ?? 0);
     return { items, total };
   } catch (error) {
-    console.error("Error fetching posts:", error);
+    // eslint-disable-next-line no-console
+    console.error('Error fetching posts:', error);
     return { items: [], total: 0 };
   }
 }
@@ -50,12 +51,15 @@ type BlogPageProps = {
   searchParams: Promise<{ page?: string }>;
 };
 
-export default async function BlogPage({ searchParams }: BlogPageProps) {
-  const resolvedSearchParams = (await searchParams) ?? {};
-  const currentPage = Math.max(1, Number(resolvedSearchParams.page) || 1);
+const BlogPage = async ({ searchParams }: BlogPageProps) => {
+  // 先解析 searchParams，确保在同一个异步上下文中
+  const resolvedSearchParams = await searchParams;
+  const currentPage = Math.max(1, Number(resolvedSearchParams?.page) || 1);
+  
+  // 确保数据获取在同一个异步上下文中
   const { items: blogPosts, total } = await getPaginatedPosts(
     currentPage,
-    PAGE_SIZE
+    PAGE_SIZE,
   );
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -95,7 +99,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                           alt={post.title}
                           fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                          style={{ objectFit: "cover" }}
+                          style={{ objectFit: 'cover' }}
                         />
                       </div>
                     )}
@@ -114,8 +118,8 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                           <div className={styles.cardTags}>
                             {parseTags(post.tags)
                               .slice(0, 3)
-                              .map((tag, idx) => (
-                                <span key={idx} className={styles.tag}>
+                              .map((tag) => (
+                                <span key={tag} className={styles.tag}>
                                   {tag}
                                 </span>
                               ))}
@@ -138,7 +142,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                     <Link
                       href={
                         currentPage === 2
-                          ? "/blog"
+                          ? '/blog'
                           : `/blog?page=${currentPage - 1}`
                       }
                       className={styles.pageButton}
@@ -154,7 +158,13 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                   )}
 
                   <span className={styles.pageInfo}>
-                    Page {currentPage} of {totalPages}
+                    Page
+                    {' '}
+                    {currentPage}
+                    {' '}
+                    of
+                    {' '}
+                    {totalPages}
                   </span>
 
                   {currentPage < totalPages ? (
@@ -179,4 +189,6 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       </section>
     </div>
   );
-}
+};
+
+export default BlogPage;

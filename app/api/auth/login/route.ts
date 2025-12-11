@@ -1,25 +1,27 @@
-import { NextRequest, NextResponse } from "next/server";
-import { verifyUser } from "@/lib/server/auth";
+import { NextRequest, NextResponse } from 'next/server';
+import { verifyUser } from '@/lib/server/auth';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { username, password } = body;
+    // eslint-disable-next-line no-console
     console.log('test2', username, password);
     if (!username || !password) {
       return NextResponse.json(
-        { error: "Username and password are required" },
-        { status: 400 }
+        { error: 'Username and password are required' },
+        { status: 400 },
       );
     }
 
     const user = await verifyUser(username, password);
 
+    // eslint-disable-next-line no-console
     console.log('test3', user);
     if (!user) {
       return NextResponse.json(
-        { error: "Invalid username or password" },
-        { status: 401 }
+        { error: 'Invalid username or password' },
+        { status: 401 },
       );
     }
 
@@ -31,11 +33,11 @@ export async function POST(request: NextRequest) {
       role: user.role,
     });
   } catch (error) {
-    console.error("Login error:", error);
+    // eslint-disable-next-line no-console
+    console.error('Login error:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: 'Internal server error' },
+      { status: 500 },
     );
   }
 }
-

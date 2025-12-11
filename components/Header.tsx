@@ -1,36 +1,69 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import LoginModal from "./LoginModal";
-import styles from "@/app/layout.module.scss";
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import styles from '@/app/layout.module.scss';
+import LoginModal from './LoginModal';
 
-export default function Header() {
+const Header = () => {
+  const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [username, setUsername] = useState<string | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   // 读取登录状态（sessionStorage）
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const loggedIn = sessionStorage.getItem("adminLoggedIn") === "true";
-    const name = sessionStorage.getItem("adminUsername");
-    setIsLoggedIn(loggedIn);
-    setUsername(name);
+    if (typeof window === 'undefined') return;
+
+    // 初始读取登录状态
+    const checkLoginStatus = () => {
+      const loggedIn = sessionStorage.getItem('adminLoggedIn') === 'true';
+      // eslint-disable-next-line no-console
+      console.log('Header: Checking login status:', loggedIn);
+      setIsLoggedIn(loggedIn);
+    };
+
+    checkLoginStatus();
+
+    // 监听 storage 事件（当其他标签页或窗口修改 sessionStorage 时）
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'adminLoggedIn') {
+        checkLoginStatus();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // 监听自定义事件（当同一窗口内修改 sessionStorage 时）
+    const handleCustomStorageChange = () => {
+      checkLoginStatus();
+    };
+
+    window.addEventListener('sessionStorageChange', handleCustomStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('sessionStorageChange', handleCustomStorageChange);
+    };
   }, []);
 
   const handleLoginSuccess = () => {
-    const name = sessionStorage.getItem("adminUsername");
+    // eslint-disable-next-line no-console
+    console.log('Header: Login success, updating state');
     setIsLoggedIn(true);
-    setUsername(name);
+    // 触发自定义事件，通知其他组件登录状态已改变
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('sessionStorageChange'));
+    }
   };
 
   const handleLogout = () => {
-    if (typeof window === "undefined") return;
-    sessionStorage.removeItem("adminLoggedIn");
-    sessionStorage.removeItem("adminUsername");
+    if (typeof window === 'undefined') return;
+    sessionStorage.removeItem('adminLoggedIn');
+    sessionStorage.removeItem('adminUsername');
     setIsLoggedIn(false);
-    setUsername(null);
+    // 触发自定义事件，通知其他组件登录状态已改变
+    window.dispatchEvent(new Event('sessionStorageChange'));
   };
 
   return (
@@ -39,7 +72,7 @@ export default function Header() {
         <div className="container">
           <div className={styles.headerContent}>
             <Link href="/" className={styles.logo}>
-              <span className={styles.logoDot}></span>
+              <span className={styles.logoDot} />
               <span className={styles.logoText}>Shaofei Liu</span>
             </Link>
 
@@ -51,11 +84,21 @@ export default function Header() {
                 <Link href="/blog" className={styles.navLink}>
                   Blog
                 </Link>
-                {isLoggedIn && (
-                  <Link href="/manage" className={styles.navLink}>
+                {isLoggedIn ? (
+                  <button
+                    type="button"
+                    className={styles.navLink}
+                    onClick={() => {
+                      // eslint-disable-next-line no-console
+                      console.log('Manage button clicked, navigating to /manage');
+                      // 直接使用 window.location.href 进行导航
+                      window.location.href = '/manage';
+                    }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
+                  >
                     Manage
-                  </Link>
-                )}
+                  </button>
+                ) : null}
               </nav>
 
               {isLoggedIn ? (
@@ -88,6 +131,6 @@ export default function Header() {
       />
     </>
   );
-}
+};
 
-
+export default Header;

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import styles from '@/app/layout.module.scss';
 
-export default function Footer() {
+const Footer = () => {
   const [year, setYear] = useState<number>(2024);
 
   useEffect(() => {
@@ -13,9 +13,16 @@ export default function Footer() {
   return (
     <footer className={styles.footer}>
       <div className="container">
-        <p>© {year} Shaofei Liu. Built with Next.js & Neon.</p>
+        <p>
+          ©
+          {' '}
+          {year}
+          {' '}
+          Shaofei Liu. Built with Next.js & Neon.
+        </p>
       </div>
     </footer>
   );
-}
+};
 
+export default Footer;

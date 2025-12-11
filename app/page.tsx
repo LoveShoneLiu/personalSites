@@ -1,177 +1,177 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import styles from "./page.module.scss";
+import { useState } from 'react';
+import styles from './page.module.scss';
 
 // 个人信息
 const personalInfo = {
-  name: "Shaofei Liu",
-  title: "Senior Frontend Engineer",
-  avatar: "/shaofeiliu.jpg", // 位于 public 目录下的头像图片
-  email: "isshaofeiliu@gmail.com",
-  phone: "+64 (029) 0255 5581",
-  wechat: "ShoneLiu007", // 微信id
-  location: "Auckland, New Zealand",
+  name: 'Shaofei Liu',
+  title: 'Senior Frontend Engineer',
+  avatar: '/shaofeiliu.jpg', // 位于 public 目录下的头像图片
+  email: 'isshaofeiliu@gmail.com',
+  phone: '+64 (029) 0255 5581',
+  wechat: 'ShoneLiu007', // 微信id
+  location: 'Auckland, New Zealand',
   bio: [
-    "I am a senior front-end engineer with 10 years of experience in large-scale web application development, with roughly 460,000 lines of code produced. I have worked at Bangzhidian Technology, Cheetah Mobile, Momo, and Meituan.",
-    "During my six years at Meituan, I was responsible for front-end development of the membership system on both mobile (C-end) and PC platforms, serving pages with tens of millions of daily PV. I have strong experience in large-scale front-end development, performance optimization, and stability assurance.",
-    "While at Meituan, I received a project team award and the Collaboration Star Award, filed one patent, and published four technical articles in the company’s internal engineering journal.",
+    'I am a senior front-end engineer with 10 years of experience in large-scale web application development, with roughly 460,000 lines of code produced. I have worked at Bangzhidian Technology, Cheetah Mobile, Momo, and Meituan.',
+    'During my six years at Meituan, I was responsible for front-end development of the membership system on both mobile (C-end) and PC platforms, serving pages with tens of millions of daily PV. I have strong experience in large-scale front-end development, performance optimization, and stability assurance.',
+    'While at Meituan, I received a project team award and the Collaboration Star Award, filed one patent, and published four technical articles in the company’s internal engineering journal.',
   ],
   skills: [
-    "JavaScript",
-    "HTML & CSS",
-    "React",
-    "Vue.js",
-    "Next.js",
-    "Node.js",
-    "TypeScript",
-    "Web Performance Optimization",
-    "Frontend Architecture",
-    "Monitoring & Error Tracking",
+    'JavaScript',
+    'HTML & CSS',
+    'React',
+    'Vue.js',
+    'Next.js',
+    'Node.js',
+    'TypeScript',
+    'Web Performance Optimization',
+    'Frontend Architecture',
+    'Monitoring & Error Tracking',
   ],
   social: {
-    github: "https://github.com/yourusername", // TODO: 替换为真实 GitHub
-    linkedin: "https://linkedin.com/in/yourusername", // TODO: 替换为真实 LinkedIn
-    email: "mailto:isshaofeiliu@gmail.com"
-  }
+    github: 'https://github.com/yourusername', // TODO: 替换为真实 GitHub
+    linkedin: 'https://linkedin.com/in/yourusername', // TODO: 替换为真实 LinkedIn
+    email: 'mailto:isshaofeiliu@gmail.com',
+  },
 };
 
 // 工作经历
 const workExperience = [
   {
     id: 1,
-    company: "Meituan (美团)",
-    position: "Senior Frontend Engineer – Membership",
-    period: "2019.09 - 2025.12",
-    location: "Beijing, China",
+    company: 'Meituan (美团)',
+    position: 'Senior Frontend Engineer – Membership',
+    period: '2019.09 - 2025.12',
+    location: 'Beijing, China',
     description:
-      "Responsible for Meituan membership frontend on both mobile and PC. The mobile membership pages reached tens of millions of PV in a single day and involved critical payment flows. Led stability, performance, and feature development with more than 30 cross-team collaborators.",
+      'Responsible for Meituan membership frontend on both mobile and PC. The mobile membership pages reached tens of millions of PV in a single day and involved critical payment flows. Led stability, performance, and feature development with more than 30 cross-team collaborators.',
     projects: [
       {
-        name: "Meituan Membership (Mobile & PC)",
+        name: 'Meituan Membership (Mobile & PC)',
         description:
-          "Participated from 0 to 1 in the membership project, including initial design, multiple major iterations, and large-scale refactoring. Over 6+ years, wrote ~280,000 lines of production code while continuously improving code quality.",
-        technologies: ["Vue.js", "React", "TypeScript", "Node.js", "Webpack"]
+          'Participated from 0 to 1 in the membership project, including initial design, multiple major iterations, and large-scale refactoring. Over 6+ years, wrote ~280,000 lines of production code while continuously improving code quality.',
+        technologies: ['Vue.js', 'React', 'TypeScript', 'Node.js', 'Webpack'],
       },
       {
-        name: "Stability & Monitoring System",
+        name: 'Stability & Monitoring System',
         description:
-          "Designed and implemented multi-level error monitoring, including window-level, component-level, AJAX error handling, and business event tracking. Achieved proactive detection of page errors, with no S9+ incidents and page availability improved from 98.33% to 99.95%.",
-        technologies: ["JavaScript", "Vue.js", "React", "Monitoring & Logging"]
+          'Designed and implemented multi-level error monitoring, including window-level, component-level, AJAX error handling, and business event tracking. Achieved proactive detection of page errors, with no S9+ incidents and page availability improved from 98.33% to 99.95%.',
+        technologies: ['JavaScript', 'Vue.js', 'React', 'Monitoring & Logging'],
       },
       {
-        name: "Performance Optimization – Instant-load Project",
+        name: 'Performance Optimization – Instant-load Project',
         description:
-          "Led performance optimization for membership pages using pre-requests, skeleton screens, lazy loading, image compression, and JS optimization. Increased the FMP (First Meaningful Paint) instant-load rate from ~10% to ~80%.",
-        technologies: ["Web Performance", "React", "Vue.js", "HTTP/2", "Caching"]
-      }
-    ]
+          'Led performance optimization for membership pages using pre-requests, skeleton screens, lazy loading, image compression, and JS optimization. Increased the FMP (First Meaningful Paint) instant-load rate from ~10% to ~80%.',
+        technologies: ['Web Performance', 'React', 'Vue.js', 'HTTP/2', 'Caching'],
+      },
+    ],
   },
   {
     id: 2,
-    company: "Momo Inc. (陌陌)",
-    position: "Frontend Engineer",
-    period: "2018 - 2019",
-    location: "Beijing, China",
+    company: 'Momo Inc. (陌陌)',
+    position: 'Frontend Engineer',
+    period: '2018 - 2019',
+    location: 'Beijing, China',
     description:
-      "Worked on large-scale user-facing web applications for a U.S.-listed social networking company, focusing on high-traffic pages and growth features.",
+      'Worked on large-scale user-facing web applications for a U.S.-listed social networking company, focusing on high-traffic pages and growth features.',
     projects: [
       {
-        name: "User Growth & Activity Pages",
+        name: 'User Growth & Activity Pages',
         description:
-          "Developed and iterated multiple marketing and activity pages, ensuring stable performance under high concurrency and complex business logic.",
-        technologies: ["JavaScript", "Vue.js", "HTML5", "CSS3"]
-      }
-    ]
+          'Developed and iterated multiple marketing and activity pages, ensuring stable performance under high concurrency and complex business logic.',
+        technologies: ['JavaScript', 'Vue.js', 'HTML5', 'CSS3'],
+      },
+    ],
   },
   {
     id: 3,
-    company: "Cheetah Mobile (猎豹移动)",
-    position: "Frontend Engineer",
-    period: "2017 - 2018",
-    location: "Beijing, China",
+    company: 'Cheetah Mobile (猎豹移动)',
+    position: 'Frontend Engineer',
+    period: '2017 - 2018',
+    location: 'Beijing, China',
     description:
-      "Participated in the development of international products for a U.S.-listed internet company, gaining experience in global user-facing web applications.",
+      'Participated in the development of international products for a U.S.-listed internet company, gaining experience in global user-facing web applications.',
     projects: [
       {
-        name: "Global Web Projects",
+        name: 'Global Web Projects',
         description:
-          "Implemented and maintained multiple global marketing and product pages, focusing on performance and compatibility across regions and devices.",
-        technologies: ["JavaScript", "jQuery", "Responsive Design"]
-      }
-    ]
+          'Implemented and maintained multiple global marketing and product pages, focusing on performance and compatibility across regions and devices.',
+        technologies: ['JavaScript', 'jQuery', 'Responsive Design'],
+      },
+    ],
   },
   {
     id: 4,
-    company: "Beijing Percent Technology Co., Ltd.",
-    position: "Frontend Engineer",
-    period: "2015 - 2017",
-    location: "Beijing, China",
+    company: 'Beijing Percent Technology Co., Ltd.',
+    position: 'Frontend Engineer',
+    period: '2015 - 2017',
+    location: 'Beijing, China',
     description:
-      "Started my career as a web frontend developer, building enterprise data products and internal systems, and establishing solid fundamentals in JavaScript, CSS, and engineering practices.",
+      'Started my career as a web frontend developer, building enterprise data products and internal systems, and establishing solid fundamentals in JavaScript, CSS, and engineering practices.',
     projects: [
       {
-        name: "Enterprise Data Dashboards",
+        name: 'Enterprise Data Dashboards',
         description:
-          "Developed data visualization dashboards and internal tools, collaborating closely with backend and product teams.",
-        technologies: ["JavaScript", "HTML5", "CSS3", "Data Visualization Basics"]
-      }
-    ]
-  }
+          'Developed data visualization dashboards and internal tools, collaborating closely with backend and product teams.',
+        technologies: ['JavaScript', 'HTML5', 'CSS3', 'Data Visualization Basics'],
+      },
+    ],
+  },
 ];
 
 // 教育背景
 const education = [
   {
     id: 1,
-    school: "Zhengzhou University",
-    degree: "Bachelor of E-commerce",
-    period: "2011 - 2015",
-    location: "Zhengzhou, China",
+    school: 'Zhengzhou University',
+    degree: 'Bachelor of E-commerce',
+    period: '2011 - 2015',
+    location: 'Zhengzhou, China',
     achievements: [
-      "Major in E-commerce with ~70% of courses related to computer science (data structures, databases, networks, etc.)",
-      "Built a solid foundation in computer science and web technologies, which supported my 10-year frontend career"
-    ]
-  }
+      'Major in E-commerce with ~70% of courses related to computer science (data structures, databases, networks, etc.)',
+      'Built a solid foundation in computer science and web technologies, which supported my 10-year frontend career',
+    ],
+  },
 ];
 
 // 荣誉与个人成就
 const honors = [
   {
-    title: "Patent & Innovation",
+    title: 'Patent & Innovation',
     description:
-      "Filed a business-related patent, demonstrating my strong sense of ownership and continuous drive to explore and improve.",
-    image: "/honors/patent-and-donation-cert.jpg",
+      'Filed a business-related patent, demonstrating my strong sense of ownership and continuous drive to explore and improve.',
+    image: '/honors/patent-and-donation-cert.jpg',
   },
   {
-    title: "Long-term Commitment",
+    title: 'Long-term Commitment',
     description:
-      "My overall performance has been recognized by the company, which granted me 3-year and 5-year service anniversary awards.",
-    image: "/honors/service-anniversary-donation-toys.png",
+      'My overall performance has been recognized by the company, which granted me 3-year and 5-year service anniversary awards.',
+    image: '/honors/service-anniversary-donation-toys.png',
   },
   {
-    title: "Charity & Social Responsibility",
+    title: 'Charity & Social Responsibility',
     description:
-      "Recognized as an employee charity monthly donor, supporting children in need through long-term monthly donations.",
-    image: "/honors/monthly-donation-detail.png",
+      'Recognized as an employee charity monthly donor, supporting children in need through long-term monthly donations.',
+    image: '/honors/monthly-donation-detail.png',
   },
   {
-    title: "Membership Project Team Award",
+    title: 'Membership Project Team Award',
     description:
-      "Recognized as part of the Meituan membership project team, delivering measurable impact to the business.",
-    image: "/honors/membership-team-award.png",
+      'Recognized as part of the Meituan membership project team, delivering measurable impact to the business.',
+    image: '/honors/membership-team-award.png',
   },
   {
-    title: "Collaboration Star – Quarterly Excellence",
+    title: 'Collaboration Star – Quarterly Excellence',
     description:
       "Awarded the Collaboration Star in Meituan's quarterly excellence evaluation, highlighting strong cross-team collaboration.",
-    image: "/honors/collaboration-star.png",
+    image: '/honors/collaboration-star.png',
   },
 ];
 
 type Honor = (typeof honors)[number];
 
-export default function HomePage() {
+const HomePage = () => {
   const [activeHonor, setActiveHonor] = useState<Honor | null>(null);
 
   return (
@@ -182,12 +182,14 @@ export default function HomePage() {
           <div className={styles.heroContent}>
             <div className={styles.heroText}>
               <h1 className={styles.heroTitle}>
-                Hi, I'm <span className={styles.highlight}>{personalInfo.name}</span>
+                Hi, I&apos;m
+                {' '}
+                <span className={styles.highlight}>{personalInfo.name}</span>
               </h1>
               <p className={styles.heroSubtitle}>{personalInfo.title}</p>
               {Array.isArray(personalInfo.bio) ? (
-                personalInfo.bio.map((text, index) => (
-                  <p key={index} className={styles.heroBio}>
+                personalInfo.bio.map((text) => (
+                  <p key={text.substring(0, 20)} className={styles.heroBio}>
                     {text}
                   </p>
                 ))
@@ -229,7 +231,7 @@ export default function HomePage() {
             </div>
             <div className={styles.heroImage}>
               <div className={styles.avatarWrapper}>
-                <div className={styles.avatarGlow}></div>
+                <div className={styles.avatarGlow} />
                 <div className={styles.avatar}>
                   <img
                     src={personalInfo.avatar}
@@ -248,8 +250,8 @@ export default function HomePage() {
         <div className="container">
           <h2 className={styles.sectionTitle}>Skills & Technologies</h2>
           <div className={styles.skillsGrid}>
-            {personalInfo.skills.map((skill, index) => (
-              <div key={index} className={styles.skillTag}>
+            {personalInfo.skills.map((skill) => (
+              <div key={skill} className={styles.skillTag}>
                 {skill}
               </div>
             ))}
@@ -264,7 +266,7 @@ export default function HomePage() {
           <div className={styles.timeline}>
             {workExperience.map((job) => (
               <div key={job.id} className={styles.timelineItem}>
-                <div className={styles.timelineDot}></div>
+                <div className={styles.timelineDot} />
                 <div className={styles.timelineContent}>
                   <div className={styles.jobHeader}>
                     <div>
@@ -280,13 +282,13 @@ export default function HomePage() {
                   {job.projects && (
                     <div className={styles.projects}>
                       <h4 className={styles.projectsTitle}>Key Projects:</h4>
-                      {job.projects.map((project, idx) => (
-                        <div key={idx} className={styles.project}>
+                      {job.projects.map((project) => (
+                        <div key={project.name} className={styles.project}>
                           <h5 className={styles.projectName}>{project.name}</h5>
                           <p className={styles.projectDescription}>{project.description}</p>
                           <div className={styles.projectTech}>
-                            {project.technologies.map((tech, techIdx) => (
-                              <span key={techIdx} className={styles.techBadge}>
+                            {project.technologies.map((tech) => (
+                              <span key={tech} className={styles.techBadge}>
                                 {tech}
                               </span>
                             ))}
@@ -387,8 +389,8 @@ export default function HomePage() {
                 </div>
                 {edu.achievements && (
                   <ul className={styles.achievements}>
-                    {edu.achievements.map((achievement, idx) => (
-                      <li key={idx}>{achievement}</li>
+                    {edu.achievements.map((achievement) => (
+                      <li key={achievement.substring(0, 30)}>{achievement}</li>
                     ))}
                   </ul>
                 )}
@@ -402,10 +404,10 @@ export default function HomePage() {
       <section className={styles.ctaSection}>
         <div className="container">
           <div className={styles.ctaContent}>
-            <h2 className={styles.ctaTitle}>Let's Work Together</h2>
+            <h2 className={styles.ctaTitle}>Let&apos;s Work Together</h2>
             <p className={styles.ctaText}>
-              I'm currently seeking new opportunities in New Zealand. 
-              Let's connect and discuss how I can contribute to your team.
+              I&apos;m currently seeking new opportunities in New Zealand.
+              Let&apos;s connect and discuss how I can contribute to your team.
             </p>
             {/* CTA 按钮暂时隐藏，后续需要时可恢复
             <div className={styles.ctaButtons}>
@@ -430,10 +432,23 @@ export default function HomePage() {
         <div
           className={styles.honorModalBackdrop}
           onClick={() => setActiveHonor(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setActiveHonor(null);
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Close modal"
         >
+          {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions,
+              jsx-a11y/click-events-have-key-events */}
           <div
             className={styles.honorModal}
             onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="honor-title"
           >
             <button
               type="button"
@@ -451,7 +466,7 @@ export default function HomePage() {
               />
             </div>
             <div className={styles.honorModalInfo}>
-              <h3 className={styles.honorModalTitle}>{activeHonor.title}</h3>
+              <h3 id="honor-title" className={styles.honorModalTitle}>{activeHonor.title}</h3>
               <p className={styles.honorModalDescription}>
                 {activeHonor.description}
               </p>
@@ -461,4 +476,6 @@ export default function HomePage() {
       )}
     </div>
   );
-}
+};
+
+export default HomePage;

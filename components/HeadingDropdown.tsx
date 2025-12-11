@@ -1,14 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Editor } from '@tiptap/core';
+import type { Editor } from '@tiptap/react';
 import styles from './HeadingDropdown.module.scss';
 
 interface HeadingDropdownProps {
   editor: Editor;
 }
 
-export default function HeadingDropdown({ editor }: HeadingDropdownProps) {
+const HeadingDropdown = ({ editor }: HeadingDropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -72,8 +72,8 @@ export default function HeadingDropdown({ editor }: HeadingDropdownProps) {
               key={heading.label}
               type="button"
               className={`${styles.menuItem} ${
-                (heading.level === null && !editor.isActive('heading')) ||
-                (heading.level !== null && editor.isActive('heading', { level: heading.level }))
+                (heading.level === null && !editor.isActive('heading'))
+                || (heading.level !== null && editor.isActive('heading', { level: heading.level }))
                   ? styles.isSelected
                   : ''
               }`}
@@ -87,5 +87,6 @@ export default function HeadingDropdown({ editor }: HeadingDropdownProps) {
       )}
     </div>
   );
-}
+};
 
+export default HeadingDropdown;

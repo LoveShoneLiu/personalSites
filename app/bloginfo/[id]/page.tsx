@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import Image from "next/image";
-import { formatDate, parseTags } from "@/lib/utils";
-import styles from "./page.module.scss";
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import Link from 'next/link';
+import Image from 'next/image';
+import { formatDate, parseTags } from '@/lib/utils';
+import styles from './page.module.scss';
 
 type Post = {
   id: number;
@@ -20,9 +20,8 @@ type Post = {
   updatedAt: Date | null;
 };
 
-export default function BlogInfoPage() {
+const BlogInfoPage = () => {
   const params = useParams();
-  const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -32,12 +31,12 @@ export default function BlogInfoPage() {
       try {
         const response = await fetch(`/api/posts/${params.id}`);
         if (!response.ok) {
-          throw new Error("Post not found");
+          throw new Error('Post not found');
         }
         const data = await response.json();
         setPost(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load post");
+        setError(err instanceof Error ? err.message : 'Failed to load post');
       } finally {
         setLoading(false);
       }
@@ -52,25 +51,25 @@ export default function BlogInfoPage() {
     return (
       <div className={styles.blogInfoPage}>
         <div className="container">
-          <div className={styles.backLinkSkeleton}></div>
+          <div className={styles.backLinkSkeleton} />
 
           <article className={styles.article}>
             <header className={styles.header}>
-              <div className={styles.featuredImageSkeleton}></div>
+              <div className={styles.featuredImageSkeleton} />
 
               <div className={styles.headerContent}>
-                <div className={styles.titleSkeleton}></div>
-                <div className={styles.titleSkeleton} style={{ width: "80%" }}></div>
-                
-                <div className={styles.descriptionSkeleton}></div>
-                <div className={styles.descriptionSkeleton} style={{ width: "90%" }}></div>
+                <div className={styles.titleSkeleton} />
+                <div className={styles.titleSkeleton} style={{ width: '80%' }} />
+
+                <div className={styles.descriptionSkeleton} />
+                <div className={styles.descriptionSkeleton} style={{ width: '90%' }} />
 
                 <div className={styles.metaSkeleton}>
-                  <div className={styles.dateSkeleton}></div>
+                  <div className={styles.dateSkeleton} />
                   <div className={styles.tagsSkeleton}>
-                    <div className={styles.tagSkeleton}></div>
-                    <div className={styles.tagSkeleton}></div>
-                    <div className={styles.tagSkeleton}></div>
+                    <div className={styles.tagSkeleton} />
+                    <div className={styles.tagSkeleton} />
+                    <div className={styles.tagSkeleton} />
                   </div>
                 </div>
               </div>
@@ -78,7 +77,7 @@ export default function BlogInfoPage() {
 
             <div className={styles.contentSkeleton}>
               {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div key={i} className={styles.paragraphSkeleton}></div>
+                <div key={i} className={styles.paragraphSkeleton} />
               ))}
             </div>
           </article>
@@ -92,7 +91,7 @@ export default function BlogInfoPage() {
       <div className={styles.error}>
         <div className={styles.errorIcon}>😕</div>
         <h2>Post Not Found</h2>
-        <p>{error || "The post you're looking for doesn't exist."}</p>
+        <p>{error || 'The post you\'re looking for doesn\'t exist.'}</p>
         <Link href="/blog" className={styles.backButton}>
           ← Back to Blog
         </Link>
@@ -119,26 +118,28 @@ export default function BlogInfoPage() {
                   fill
                   priority
                   sizes="(max-width: 1200px) 100vw, 1200px"
-                  style={{ objectFit: "cover" }}
+                  style={{ objectFit: 'cover' }}
                 />
               </div>
             )}
 
             <div className={styles.headerContent}>
               <h1 className={styles.title}>{post.title}</h1>
-              
+
               {post.description && (
                 <p className={styles.description}>{post.description}</p>
               )}
 
               <div className={styles.meta}>
                 <span className={styles.date}>
-                  📅 {formatDate(post.createdAt!)}
+                  📅
+                  {' '}
+                  {formatDate(post.createdAt!)}
                 </span>
                 {tags.length > 0 && (
                   <div className={styles.tags}>
-                    {tags.map((tag, idx) => (
-                      <span key={idx} className={styles.tag}>
+                    {tags.map((tag) => (
+                      <span key={tag} className={styles.tag}>
                         {tag}
                       </span>
                     ))}
@@ -159,7 +160,8 @@ export default function BlogInfoPage() {
             </div>
           </header>
 
-          <div 
+          {/* eslint-disable-next-line react/no-danger */}
+          <div
             className={styles.content}
             dangerouslySetInnerHTML={{ __html: post.content }}
           />
@@ -167,5 +169,6 @@ export default function BlogInfoPage() {
       </div>
     </div>
   );
-}
+};
 
+export default BlogInfoPage;

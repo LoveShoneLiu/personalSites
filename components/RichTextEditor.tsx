@@ -1,16 +1,18 @@
 'use client';
 
-import { useEffect, useCallback, useRef, useState } from "react";
-import { EditorContent, useEditor, Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
-import Underline from "@tiptap/extension-underline";
-import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
-import { ImageResize } from "./ImageResizeExtension";
-import HeadingDropdown from "./HeadingDropdown";
-import ListDropdown from "./ListDropdown";
-import styles from "./RichTextEditor.module.scss";
+import {
+  useEffect, useCallback, useRef, useState,
+} from 'react';
+import { EditorContent, useEditor, Editor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Link from '@tiptap/extension-link';
+import Underline from '@tiptap/extension-underline';
+import TaskList from '@tiptap/extension-task-list';
+import TaskItem from '@tiptap/extension-task-item';
+import { ImageResize } from './ImageResizeExtension';
+import HeadingDropdown from './HeadingDropdown';
+import ListDropdown from './ListDropdown';
+import styles from './RichTextEditor.module.scss';
 
 type RichTextEditorProps = {
   value: string;
@@ -18,19 +20,17 @@ type RichTextEditorProps = {
 };
 
 // 将文件转换为 base64 data URL
-const fileToDataUrl = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-};
+const fileToDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result as string);
+  reader.onerror = reject;
+  reader.readAsDataURL(file);
+});
 
-export default function RichTextEditor({ value, onChange }: RichTextEditorProps) {
+const RichTextEditor = ({ value, onChange }: RichTextEditorProps) => {
   const editorRef = useRef<Editor | null>(null);
   const [mounted, setMounted] = useState(false);
-  
+
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -53,39 +53,38 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
         nested: true,
       }),
     ],
-    content: value || "",
+    content: value || '',
     editorProps: {
       attributes: {
-        class: "tiptap-editor",
+        class: 'tiptap-editor',
       },
       handlePaste: (view, event) => {
         const items = Array.from(event.clipboardData?.items || []);
-        
-        for (const item of items) {
-          if (item.type.indexOf('image') !== -1) {
-            event.preventDefault();
-            const file = item.getAsFile();
-            if (file && editorRef.current) {
-              fileToDataUrl(file).then((src) => {
-                editorRef.current?.chain().focus().setImage({ src }).run();
-              });
-            }
-            return true;
+
+        const imageItem = items.find((item) => item.type.indexOf('image') !== -1);
+        if (imageItem) {
+          event.preventDefault();
+          const file = imageItem.getAsFile();
+          if (file && editorRef.current) {
+            fileToDataUrl(file).then((src) => {
+              editorRef.current?.chain().focus().setImage({ src }).run();
+            });
           }
+          return true;
         }
         return false;
       },
       handleDrop: (view, event, slice, moved) => {
         if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files[0]) {
           const file = event.dataTransfer.files[0];
-          
+
           if (file.type.indexOf('image') !== -1 && editorRef.current) {
             event.preventDefault();
             const coordinates = view.posAtCoords({
               left: event.clientX,
               top: event.clientY,
             });
-            
+
             fileToDataUrl(file).then((src) => {
               if (coordinates && editorRef.current) {
                 editorRef.current.chain().focus().setImage({ src }).run();
@@ -97,8 +96,8 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
         return false;
       },
     },
-    onUpdate({ editor }) {
-      onChange(editor.getHTML());
+    onUpdate({ editor: editorInstance }) {
+      onChange(editorInstance.getHTML());
     },
   });
 
@@ -121,22 +120,24 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
     if (value && value !== current) {
       editor.commands.setContent(value, { emitUpdate: false });
     }
-    if (!value && current !== "<p></p>") {
+    if (!value && current !== '<p></p>') {
       editor.commands.clearContent();
     }
   }, [value, editor]);
 
   const setLink = useCallback(() => {
     if (!editor) return;
-    const url = window.prompt("Enter URL");
+    // eslint-disable-next-line no-alert
+    const url = window.prompt('Enter URL');
     if (!url) {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
+      editor.chain().focus().extendMarkRange('link').unsetLink()
+        .run();
       return;
     }
     editor
       .chain()
       .focus()
-      .extendMarkRange("link")
+      .extendMarkRange('link')
       .setLink({ href: url })
       .run();
   }, [editor]);
@@ -153,7 +154,9 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
           const src = await fileToDataUrl(file);
           editor.chain().focus().setImage({ src }).run();
         } catch (error) {
+          // eslint-disable-next-line no-console
           console.error('Error loading image:', error);
+          // eslint-disable-next-line no-alert
           alert('图片加载失败，请重试');
         }
       }
@@ -182,28 +185,28 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
         <div className={styles.toolbarGroup}>
           <button
             type="button"
-            className={editor.isActive("bold") ? styles.active : ""}
+            className={editor.isActive('bold') ? styles.active : ''}
             onClick={() => editor.chain().focus().toggleBold().run()}
           >
             B
           </button>
           <button
             type="button"
-            className={editor.isActive("italic") ? styles.active : ""}
+            className={editor.isActive('italic') ? styles.active : ''}
             onClick={() => editor.chain().focus().toggleItalic().run()}
           >
             I
           </button>
           <button
             type="button"
-            className={editor.isActive("underline") ? styles.active : ""}
+            className={editor.isActive('underline') ? styles.active : ''}
             onClick={() => editor.chain().focus().toggleUnderline().run()}
           >
             U
           </button>
           <button
             type="button"
-            className={editor.isActive("strike") ? styles.active : ""}
+            className={editor.isActive('strike') ? styles.active : ''}
             onClick={() => editor.chain().focus().toggleStrike().run()}
           >
             S
@@ -214,24 +217,24 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
           <ListDropdown editor={editor} />
           <button
             type="button"
-            className={editor.isActive("blockquote") ? styles.active : ""}
+            className={editor.isActive('blockquote') ? styles.active : ''}
             onClick={() => editor.chain().focus().toggleBlockquote().run()}
           >
             ❝
           </button>
           <button
             type="button"
-            className={editor.isActive("codeBlock") ? styles.active : ""}
+            className={editor.isActive('codeBlock') ? styles.active : ''}
             onClick={() => editor.chain().focus().toggleCodeBlock().run()}
           >
-            {"</>"}
+            {'</>'}
           </button>
         </div>
 
         <div className={styles.toolbarGroup}>
           <button
             type="button"
-            className={editor.isActive("link") ? styles.active : ""}
+            className={editor.isActive('link') ? styles.active : ''}
             onClick={setLink}
           >
             Link
@@ -256,7 +259,8 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
           </button>
           <button
             type="button"
-            onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
+            onClick={() => editor.chain().focus().clearNodes().unsetAllMarks()
+              .run()}
           >
             Clear
           </button>
@@ -268,6 +272,6 @@ export default function RichTextEditor({ value, onChange }: RichTextEditorProps)
       </div>
     </div>
   );
-}
+};
 
-
+export default RichTextEditor;

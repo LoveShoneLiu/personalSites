@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db, posts } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { NextRequest, NextResponse } from 'next/server';
+import { db, posts } from '@/lib/db';
+import { eq } from 'drizzle-orm';
 
 export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const params = await context.params;
-    const postId = parseInt(params.id);
-    
-    if (isNaN(postId)) {
+    const postId = parseInt(params.id, 10);
+
+    if (Number.isNaN(postId)) {
       return NextResponse.json(
-        { error: "Invalid post ID" },
-        { status: 400 }
+        { error: 'Invalid post ID' },
+        { status: 400 },
       );
     }
 
@@ -25,38 +25,41 @@ export async function GET(
 
     if (result.length === 0) {
       return NextResponse.json(
-        { error: "Post not found" },
-        { status: 404 }
+        { error: 'Post not found' },
+        { status: 404 },
       );
     }
 
     return NextResponse.json(result[0]);
   } catch (error) {
-    console.error("Error fetching post:", error);
+    // eslint-disable-next-line no-console
+    console.error('Error fetching post:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: 'Internal server error' },
+      { status: 500 },
     );
   }
 }
 
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const params = await context.params;
-    const postId = parseInt(params.id);
-    
-    if (isNaN(postId)) {
+    const postId = parseInt(params.id, 10);
+
+    if (Number.isNaN(postId)) {
       return NextResponse.json(
-        { error: "Invalid post ID" },
-        { status: 400 }
+        { error: 'Invalid post ID' },
+        { status: 400 },
       );
     }
 
     const body = await request.json();
-    const { title, description, content, imageUrl, tags, link, isPublished } = body;
+    const {
+      title, description, content, imageUrl, tags, link, isPublished,
+    } = body;
 
     const result = await db
       .update(posts)
@@ -75,33 +78,34 @@ export async function PUT(
 
     if (result.length === 0) {
       return NextResponse.json(
-        { error: "Post not found" },
-        { status: 404 }
+        { error: 'Post not found' },
+        { status: 404 },
       );
     }
 
     return NextResponse.json(result[0]);
   } catch (error) {
-    console.error("Error updating post:", error);
+    // eslint-disable-next-line no-console
+    console.error('Error updating post:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: 'Internal server error' },
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> },
 ) {
   try {
     const params = await context.params;
-    const postId = parseInt(params.id);
-    
-    if (isNaN(postId)) {
+    const postId = parseInt(params.id, 10);
+
+    if (Number.isNaN(postId)) {
       return NextResponse.json(
-        { error: "Invalid post ID" },
-        { status: 400 }
+        { error: 'Invalid post ID' },
+        { status: 400 },
       );
     }
 
@@ -112,18 +116,18 @@ export async function DELETE(
 
     if (result.length === 0) {
       return NextResponse.json(
-        { error: "Post not found" },
-        { status: 404 }
+        { error: 'Post not found' },
+        { status: 404 },
       );
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting post:", error);
+    // eslint-disable-next-line no-console
+    console.error('Error deleting post:', error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: 'Internal server error' },
+      { status: 500 },
     );
   }
 }
-

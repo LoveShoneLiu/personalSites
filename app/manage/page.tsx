@@ -1,11 +1,10 @@
 'use client';
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import LoginModal from "@/components/LoginModal";
-import { parseTags, serializeTags } from "@/lib/utils";
-import RichTextEditor from "@/components/RichTextEditor";
-import styles from "./page.module.scss";
+import { useState, useEffect, useCallback } from 'react';
+import LoginModal from '@/components/LoginModal';
+import { parseTags, serializeTags } from '@/lib/utils';
+import RichTextEditor from '@/components/RichTextEditor';
+import styles from './page.module.scss';
 
 type Post = {
   id: number;
@@ -20,8 +19,7 @@ type Post = {
   updatedAt: Date | null;
 };
 
-export default function ManagePage() {
-  const router = useRouter();
+const ManagePage = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -30,39 +28,40 @@ export default function ManagePage() {
   const [showEditor, setShowEditor] = useState(false);
 
   // Form state
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [content, setContent] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
   const [tags, setTags] = useState<string[]>([]);
-  const [tagInput, setTagInput] = useState("");
-  const [link, setLink] = useState("");
+  const [tagInput, setTagInput] = useState('');
+  const [link, setLink] = useState('');
   const [isPublished, setIsPublished] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  const fetchPosts = useCallback(async () => {
+    try {
+      const response = await fetch('/api/posts');
+      const data = await response.json();
+      setPosts(data);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('Error fetching posts:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    const loggedIn = sessionStorage.getItem("adminLoggedIn") === "true";
+    const loggedIn = sessionStorage.getItem('adminLoggedIn') === 'true';
     setIsLoggedIn(loggedIn);
-    
+
     if (!loggedIn) {
       setShowLoginModal(true);
       setLoading(false);
     } else {
       fetchPosts();
     }
-  }, []);
-
-  const fetchPosts = async () => {
-    try {
-      const response = await fetch("/api/posts");
-      const data = await response.json();
-      setPosts(data);
-    } catch (error) {
-      console.error("Error fetching posts:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchPosts]);
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
@@ -70,21 +69,25 @@ export default function ManagePage() {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem("adminLoggedIn");
-    sessionStorage.removeItem("adminUsername");
+    sessionStorage.removeItem('adminLoggedIn');
+    sessionStorage.removeItem('adminUsername');
     setIsLoggedIn(false);
     setShowLoginModal(true);
+    // 触发自定义事件，通知 Header 组件更新
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('sessionStorageChange'));
+    }
   };
 
   const handleNewPost = () => {
     setEditingPost(null);
-    setTitle("");
-    setDescription("");
-    setContent("");
-    setImageUrl("");
+    setTitle('');
+    setDescription('');
+    setContent('');
+    setImageUrl('');
     setTags([]);
-    setTagInput("");
-    setLink("");
+    setTagInput('');
+    setLink('');
     setIsPublished(true);
     setShowEditor(true);
   };
@@ -92,12 +95,12 @@ export default function ManagePage() {
   const handleEditPost = (post: Post) => {
     setEditingPost(post);
     setTitle(post.title);
-    setDescription(post.description || "");
+    setDescription(post.description || '');
     setContent(post.content);
-    setImageUrl(post.imageUrl || "");
+    setImageUrl(post.imageUrl || '');
     setTags(parseTags(post.tags));
-    setTagInput("");
-    setLink(post.link || "");
+    setTagInput('');
+    setLink(post.link || '');
     setIsPublished(post.isPublished);
     setShowEditor(true);
   };
@@ -105,7 +108,7 @@ export default function ManagePage() {
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
       setTags([...tags, tagInput.trim()]);
-      setTagInput("");
+      setTagInput('');
     }
   };
 
@@ -115,7 +118,8 @@ export default function ManagePage() {
 
   const handleSave = async () => {
     if (!title.trim() || !content.trim()) {
-      alert("Title and content are required");
+      // eslint-disable-next-line no-alert
+      alert('Title and content are required');
       return;
     }
 
@@ -135,50 +139,55 @@ export default function ManagePage() {
       let response;
       if (editingPost) {
         response = await fetch(`/api/posts/${editingPost.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(postData),
         });
       } else {
-        response = await fetch("/api/posts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        response = await fetch('/api/posts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(postData),
         });
       }
 
       if (!response.ok) {
-        throw new Error("Failed to save post");
+        throw new Error('Failed to save post');
       }
 
       await fetchPosts();
       setShowEditor(false);
     } catch (error) {
-      console.error("Error saving post:", error);
-      alert("Failed to save post");
+      // eslint-disable-next-line no-console
+      console.error('Error saving post:', error);
+      // eslint-disable-next-line no-alert
+      alert('Failed to save post');
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async (postId: number) => {
-    if (!confirm("Are you sure you want to delete this post?")) {
+    // eslint-disable-next-line no-alert, no-restricted-globals
+    if (!confirm('Are you sure you want to delete this post?')) {
       return;
     }
 
     try {
       const response = await fetch(`/api/posts/${postId}`, {
-        method: "DELETE",
+        method: 'DELETE',
       });
 
       if (!response.ok) {
-        throw new Error("Failed to delete post");
+        throw new Error('Failed to delete post');
       }
 
       await fetchPosts();
     } catch (error) {
-      console.error("Error deleting post:", error);
-      alert("Failed to delete post");
+      // eslint-disable-next-line no-console
+      console.error('Error deleting post:', error);
+      // eslint-disable-next-line no-alert
+      alert('Failed to delete post');
     }
   };
 
@@ -195,6 +204,7 @@ export default function ManagePage() {
           <h2>Login Required</h2>
           <p>Please login to access the admin panel</p>
           <button
+            type="button"
             className={styles.loginButton}
             onClick={() => setShowLoginModal(true)}
           >
@@ -208,7 +218,7 @@ export default function ManagePage() {
   if (loading) {
     return (
       <div className={styles.loading}>
-        <div className="spinner"></div>
+        <div className="spinner" />
         <p>Loading...</p>
       </div>
     );
@@ -223,10 +233,10 @@ export default function ManagePage() {
             <p className={styles.subtitle}>Create and manage your blog posts</p>
           </div>
           <div className={styles.headerActions}>
-            <button className={styles.newButton} onClick={handleNewPost}>
+            <button type="button" className={styles.newButton} onClick={handleNewPost}>
               ✏️ New Post
             </button>
-            <button className={styles.logoutButton} onClick={handleLogout}>
+            <button type="button" className={styles.logoutButton} onClick={handleLogout}>
               Logout
             </button>
           </div>
@@ -235,8 +245,9 @@ export default function ManagePage() {
         {showEditor ? (
           <div className={styles.editor}>
             <div className={styles.editorHeader}>
-              <h2>{editingPost ? "Edit Post" : "New Post"}</h2>
+              <h2>{editingPost ? 'Edit Post' : 'New Post'}</h2>
               <button
+                type="button"
                 className={styles.closeEditor}
                 onClick={() => setShowEditor(false)}
               >
@@ -246,8 +257,9 @@ export default function ManagePage() {
 
             <div className={styles.form}>
               <div className={styles.formGroup}>
-                <label>Title *</label>
+                <label htmlFor="title-input">Title *</label>
                 <input
+                  id="title-input"
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -257,8 +269,9 @@ export default function ManagePage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>Description</label>
+                <label htmlFor="description-input">Description</label>
                 <textarea
+                  id="description-input"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Brief description of the post"
@@ -268,8 +281,9 @@ export default function ManagePage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>Image URL</label>
+                <label htmlFor="image-url-input">Image URL</label>
                 <input
+                  id="image-url-input"
                   type="url"
                   value={imageUrl}
                   onChange={(e) => setImageUrl(e.target.value)}
@@ -279,13 +293,14 @@ export default function ManagePage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>Tags</label>
+                <label htmlFor="tag-input">Tags</label>
                 <div className={styles.tagInput}>
                   <input
+                    id="tag-input"
                     type="text"
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
                     placeholder="Add a tag and press Enter"
                     className={styles.input}
                   />
@@ -298,18 +313,19 @@ export default function ManagePage() {
                   </button>
                 </div>
                 <div className={styles.tags}>
-                  {tags.map((tag, idx) => (
-                    <span key={idx} className={styles.tag}>
+                  {tags.map((tag) => (
+                    <span key={tag} className={styles.tag}>
                       {tag}
-                      <button onClick={() => handleRemoveTag(tag)}>✕</button>
+                      <button type="button" onClick={() => handleRemoveTag(tag)}>✕</button>
                     </span>
                   ))}
                 </div>
               </div>
 
               <div className={styles.formGroup}>
-                <label>External Link</label>
+                <label htmlFor="link-input">External Link</label>
                 <input
+                  id="link-input"
                   type="url"
                   value={link}
                   onChange={(e) => setLink(e.target.value)}
@@ -319,13 +335,14 @@ export default function ManagePage() {
               </div>
 
               <div className={styles.formGroup}>
-                <label>Content *</label>
+                <label htmlFor="content-editor">Content *</label>
                 <RichTextEditor value={content} onChange={setContent} />
               </div>
 
               <div className={styles.formGroup}>
-                <label className={styles.checkbox}>
+                <label htmlFor="publish-checkbox" className={styles.checkbox}>
                   <input
+                    id="publish-checkbox"
                     type="checkbox"
                     checked={isPublished}
                     onChange={(e) => setIsPublished(e.target.checked)}
@@ -336,6 +353,7 @@ export default function ManagePage() {
 
               <div className={styles.formActions}>
                 <button
+                  type="button"
                   className={styles.cancelButton}
                   onClick={() => setShowEditor(false)}
                   disabled={saving}
@@ -343,11 +361,16 @@ export default function ManagePage() {
                   Cancel
                 </button>
                 <button
+                  type="button"
                   className={styles.saveButton}
                   onClick={handleSave}
                   disabled={saving}
                 >
-                  {saving ? "Saving..." : editingPost ? "Update" : "Create"}
+                  {(() => {
+                    if (saving) return 'Saving...';
+                    if (editingPost) return 'Update';
+                    return 'Create';
+                  })()}
                 </button>
               </div>
             </div>
@@ -359,54 +382,56 @@ export default function ManagePage() {
                 <div className={styles.emptyIcon}>📝</div>
                 <h3>No posts yet</h3>
                 <p>Create your first blog post to get started</p>
-                <button className={styles.newButton} onClick={handleNewPost}>
+                <button type="button" className={styles.newButton} onClick={handleNewPost}>
                   Create Post
                 </button>
               </div>
             ) : (
               <div className={styles.postsGrid}>
-                {posts.map((post) => (
-                  <div key={post.id} className={styles.postCard}>
-                    <div className={styles.postHeader}>
-                      <h3 className={styles.postTitle}>{post.title}</h3>
-                      <span
-                        className={`${styles.status} ${
-                          post.isPublished ? styles.published : styles.draft
-                        }`}
-                      >
-                        {post.isPublished ? "Published" : "Draft"}
-                      </span>
-                    </div>
-                    {post.description && (
-                      <p className={styles.postDescription}>{post.description}</p>
-                    )}
-                    <div className={styles.postMeta}>
-                      {post.tags && parseTags(post.tags).length > 0 && (
-                        <div className={styles.postTags}>
-                          {parseTags(post.tags).slice(0, 3).map((tag, idx) => (
-                            <span key={idx} className={styles.postTag}>
-                              {tag}
-                            </span>
-                          ))}
-                        </div>
+                {posts.map((post) => {
+                  const statusClass = post.isPublished ? styles.published : styles.draft;
+                  const statusText = post.isPublished ? 'Published' : 'Draft';
+                  return (
+                    <div key={post.id} className={styles.postCard}>
+                      <div className={styles.postHeader}>
+                        <h3 className={styles.postTitle}>{post.title}</h3>
+                        <span className={`${styles.status} ${statusClass}`}>
+                          {statusText}
+                        </span>
+                      </div>
+                      {post.description && (
+                        <p className={styles.postDescription}>{post.description}</p>
                       )}
+                      <div className={styles.postMeta}>
+                        {post.tags && parseTags(post.tags).length > 0 && (
+                          <div className={styles.postTags}>
+                            {parseTags(post.tags).slice(0, 3).map((tag) => (
+                              <span key={tag} className={styles.postTag}>
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      <div className={styles.postActions}>
+                        <button
+                          type="button"
+                          className={styles.editButton}
+                          onClick={() => handleEditPost(post)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.deleteButton}
+                          onClick={() => handleDelete(post.id)}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
-                    <div className={styles.postActions}>
-                      <button
-                        className={styles.editButton}
-                        onClick={() => handleEditPost(post)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className={styles.deleteButton}
-                        onClick={() => handleDelete(post.id)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -414,5 +439,6 @@ export default function ManagePage() {
       </div>
     </div>
   );
-}
+};
 
+export default ManagePage;

@@ -1,4 +1,6 @@
-import { pgTable, serial, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
+import {
+  pgTable, serial, varchar, text, timestamp, boolean,
+} from 'drizzle-orm/pg-core';
 
 // 用户表
 export const users = pgTable('users', {
@@ -28,4 +30,3 @@ export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Post = typeof posts.$inferSelect;
 export type NewPost = typeof posts.$inferInsert;
-
