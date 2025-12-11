@@ -55,7 +55,7 @@ const BlogPage = async ({ searchParams }: BlogPageProps) => {
   // 先解析 searchParams，确保在同一个异步上下文中
   const resolvedSearchParams = await searchParams;
   const currentPage = Math.max(1, Number(resolvedSearchParams?.page) || 1);
-  
+
   // 确保数据获取在同一个异步上下文中
   const { items: blogPosts, total } = await getPaginatedPosts(
     currentPage,

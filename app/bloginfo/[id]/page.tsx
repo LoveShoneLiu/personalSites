@@ -160,7 +160,7 @@ const BlogInfoPage = () => {
             </div>
           </header>
 
-          {/* eslint-disable-next-line react/no-danger */}
+          {/* eslint-disable react/no-danger */}
           <div
             className={styles.content}
             dangerouslySetInnerHTML={{ __html: post.content }}

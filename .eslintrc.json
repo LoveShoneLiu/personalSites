@@ -13,6 +13,21 @@
       "jsx": true
     }
   },
+  "overrides": [
+    {
+      "files": ["*.js"],
+      "parser": "espree",
+      "parserOptions": {
+        "ecmaVersion": 2020,
+        "sourceType": "module",
+        "project": null
+      },
+      "rules": {
+        "@typescript-eslint/no-var-requires": "off",
+        "@typescript-eslint/explicit-function-return-type": "off"
+      }
+    }
+  ],
   "plugins": [
     "@typescript-eslint",
     "react",
@@ -75,6 +90,7 @@
     ],
     "no-underscore-dangle": "off",
     "react/no-array-index-key": "warn",
+    "react/no-danger": "warn",
     "jsx-a11y/label-has-associated-control": [
       "error",
       {

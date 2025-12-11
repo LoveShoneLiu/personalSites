@@ -2,18 +2,18 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import styles from '@/app/layout.module.scss';
 import LoginModal from './LoginModal';
 
 const Header = () => {
-  const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
   // 读取登录状态（sessionStorage）
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
 
     // 初始读取登录状态
     const checkLoginStatus = () => {
@@ -94,7 +94,12 @@ const Header = () => {
                       // 直接使用 window.location.href 进行导航
                       window.location.href = '/manage';
                     }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', font: 'inherit' }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      font: 'inherit',
+                    }}
                   >
                     Manage
                   </button>
