@@ -10,6 +10,7 @@ const personalInfo = {
   avatar: "/shaofeiliu.jpg", // 位于 public 目录下的头像图片
   email: "isshaofeiliu@gmail.com",
   phone: "+64 (029) 0255 5581",
+  wechat: "ShoneLiu007", // 微信id
   location: "Auckland, New Zealand",
   bio: [
     "I am a senior front-end engineer with 10 years of experience in large-scale web application development, with roughly 460,000 lines of code produced. I have worked at Bangzhidian Technology, Cheetah Mobile, Momo, and Meituan.",
@@ -196,17 +197,33 @@ export default function HomePage() {
               <div className={styles.heroContact}>
                 <div className={styles.heroContactItem}>
                   <span className={styles.heroContactIcon}>📧</span>
-                  <a href={`mailto:${personalInfo.email}`} className={styles.heroContactLink}>
-                    {personalInfo.email}
-                  </a>
+                  <div className={styles.heroContactContent}>
+                    <span className={styles.heroContactLabel}>Email: </span>
+                    <a href={`mailto:${personalInfo.email}`} className={styles.heroContactLink}>
+                      {personalInfo.email}
+                    </a>
+                  </div>
                 </div>
                 <div className={styles.heroContactItem}>
                   <span className={styles.heroContactIcon}>📱</span>
-                  <span className={styles.heroContactText}>{personalInfo.phone}</span>
+                  <div className={styles.heroContactContent}>
+                    <span className={styles.heroContactLabel}>Phone: </span>
+                    <span className={styles.heroContactText}>{personalInfo.phone}</span>
+                  </div>
+                </div>
+                <div className={styles.heroContactItem}>
+                  <span className={styles.heroContactIcon}>💬</span>
+                  <div className={styles.heroContactContent}>
+                    <span className={styles.heroContactLabel}>WeChat: </span>
+                    <span className={styles.heroContactText}>{personalInfo.wechat}</span>
+                  </div>
                 </div>
                 <div className={styles.heroContactItem}>
                   <span className={styles.heroContactIcon}>📍</span>
-                  <span className={styles.heroContactText}>{personalInfo.location}</span>
+                  <div className={styles.heroContactContent}>
+                    <span className={styles.heroContactLabel}>Location: </span>
+                    <span className={styles.heroContactText}>{personalInfo.location}</span>
+                  </div>
                 </div>
               </div>
             </div>
