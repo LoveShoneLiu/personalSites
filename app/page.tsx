@@ -91,13 +91,13 @@ const workExperience = [
     period: '2017 - 2018',
     location: 'Beijing, China',
     description:
-      'Participated in the development of international products for a U.S.-listed internet company, gaining experience in global user-facing web applications.',
+      'Cheetah Mobile is a leading Chinese internet and mobile security software company, renowned for successfully expanding tool applications overseas. The company provides services including AI service robots, overseas advertising agency (official Meta and TikTok partner), and multi-cloud management, committed to becoming a globally leading intelligent service and industry empowerment company in the AI era.',
     projects: [
       {
-        name: 'Global Web Projects',
+        name: 'Cheetah Mobile Advertising Platform',
         description:
-          'Implemented and maintained multiple global marketing and product pages, focusing on performance and compatibility across regions and devices.',
-        technologies: ['JavaScript', 'jQuery', 'Responsive Design'],
+          'Responsible for building Cheetah Mobile\'s advertising platform, developing and maintaining core advertising infrastructure and features.',
+        technologies: ['AngularJS', 'JavaScript', 'HTML', 'CSS'],
       },
     ],
   },
