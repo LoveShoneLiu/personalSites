@@ -74,13 +74,13 @@ const workExperience = [
     period: '2018 - 2019',
     location: 'Beijing, China',
     description:
-      'Worked on large-scale user-facing web applications for a U.S.-listed social networking company, focusing on high-traffic pages and growth features.',
+      'Momo is a U.S.-listed company where users can express themselves through video, text, voice, and images, discover nearby people based on location, join nearby groups, and build authentic, effective, and healthy social relationships.',
     projects: [
       {
-        name: 'User Growth & Activity Pages',
+        name: 'Momo APP Game Hall',
         description:
-          'Developed and iterated multiple marketing and activity pages, ensuring stable performance under high concurrency and complex business logic.',
-        technologies: ['JavaScript', 'Vue.js', 'HTML5', 'CSS3'],
+          'Independently responsible for the development and maintenance of Momo APP Game Hall using Weex technology. Built a high-performance mobile game platform with seamless native integration, delivering smooth user experience.',
+        technologies: ['Weex', 'JavaScript', 'Vue.js', 'HTML&HTML5', 'CSS&CSS3'],
       },
     ],
   },
@@ -97,7 +97,7 @@ const workExperience = [
         name: 'Cheetah Mobile Advertising Platform',
         description:
           'Responsible for building Cheetah Mobile\'s advertising platform, developing and maintaining core advertising infrastructure and features.',
-        technologies: ['AngularJS', 'JavaScript', 'HTML', 'CSS'],
+        technologies: ['AngularJS', 'Jquery', 'JavaScript', 'HTML&HTML5', 'CSS&CSS3'],
       },
     ],
   },
@@ -111,10 +111,10 @@ const workExperience = [
       'Started my career as a web frontend developer, building enterprise data products and internal systems, and establishing solid fundamentals in JavaScript, CSS, and engineering practices.',
     projects: [
       {
-        name: 'Enterprise Data Dashboards',
+        name: 'Internal Enterprise System',
         description:
-          'Developed data visualization dashboards and internal tools, collaborating closely with backend and product teams.',
-        technologies: ['JavaScript', 'HTML5', 'CSS3', 'Data Visualization Basics'],
+          'Collaborated closely with backend and product teams to develop internal enterprise systems.',
+        technologies: ['JavaScript', 'HTML&HTML5', 'CSS&CSS3', 'Jquery'],
       },
     ],
   },
