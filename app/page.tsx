@@ -45,25 +45,37 @@ const workExperience = [
     period: '2019.09 - 2025.12',
     location: 'Beijing, China',
     description:
-      'Responsible for Meituan membership frontend on both mobile and PC. The mobile membership pages reached tens of millions of PV in a single day and involved critical payment flows. Led stability, performance, and feature development with more than 30 cross-team collaborators.',
+      'Meituan is a technology retail company. With its "Retail + Technology" strategy, Meituan practices its corporate mission of "helping everyone eat better and live better". Currently at Meituan, I am a senior frontend engineer. Over my 6 years at Meituan, I have written 280,000 lines of code and have extensive web frontend development experience.',
     projects: [
       {
-        name: 'Meituan Membership (Mobile & PC)',
+        name: 'Meituan Takeout Membership Business',
         description:
-          'Participated from 0 to 1 in the membership project, including initial design, multiple major iterations, and large-scale refactoring. Over 6+ years, wrote ~280,000 lines of production code while continuously improving code quality.',
+          'Responsible for web frontend development of Meituan Takeout Membership user-side pages and operations management system. To meet business development needs, conducted at least 6 major redesigns and refactorings over 6 years. The user-side Meituan Takeout Membership homepage reached 15 million daily PV. The operations PC side adopted a micro-frontend architecture to achieve rapid business development and iteration.',
         technologies: ['Vue.js', 'React', 'TypeScript', 'Node.js', 'Webpack'],
       },
       {
-        name: 'Stability & Monitoring System',
+        name: 'Stability Governance',
         description:
-          'Designed and implemented multi-level error monitoring, including window-level, component-level, AJAX error handling, and business event tracking. Achieved proactive detection of page errors, with no S9+ incidents and page availability improved from 98.33% to 99.95%.',
+          'Established a comprehensive stability governance system with measurable metrics including online incidents, customer complaints, and page availability. Implemented prevention measures through strict development processes (requirement review, technical design review, code review, UI review, QA testing) and code standards (six musts and two don\'ts). Built multi-level error monitoring and alerting system covering JavaScript errors, API errors, resource errors, PV anomalies, and core path tracking. Implemented error capture mechanisms including window error listeners, Promise rejection handlers, Vue error handlers, and React ErrorBoundary components. Established on-call duty system and standardized incident response process (observe, respond, notify, stop loss, rollback). Conducted post-incident reviews using 5 Whys analysis to identify root causes and implement improvements. Achieved proactive error detection with no S9+ incidents and improved page availability from 98.33% to 99.95%.',
         technologies: ['JavaScript', 'Vue.js', 'React', 'Monitoring & Logging'],
       },
       {
-        name: 'Performance Optimization – Instant-load Project',
+        name: 'Performance Optimization',
         description:
-          'Led performance optimization for membership pages using pre-requests, skeleton screens, lazy loading, image compression, and JS optimization. Increased the FMP (First Meaningful Paint) instant-load rate from ~10% to ~80%.',
+          'Led comprehensive performance optimization initiatives for membership pages, implementing multiple pre-operation strategies including pre-rendering, pre-requests (advancing API calls before JS resource loading), resource preloading (storing framework and business resources in APP cache), and container preloading (saving ~800ms by preloading Webview containers). Optimized bundle size through tree shaking, code splitting, and image optimization (WebP for Android, PNG for iOS). Applied progressive loading techniques with skeleton screens and optimized React code with useMemo, useCallback, and React.memo. Increased the FMP (First Meaningful Paint) instant-load rate from ~30% to ~80%.',
         technologies: ['Web Performance', 'React', 'Vue.js', 'HTTP/2', 'Caching'],
+      },
+      {
+        name: 'Diting Technical Project',
+        description:
+          'Meituan\'s customer complaint handling commonly faces challenges including difficulty in identifying responsible teams, lack of key information for problem troubleshooting, and insufficient accumulation of historical experience. To address these issues, I led the development of the Diting platform by leveraging the company\'s internal Raptor and Logan log platforms. The platform provides error code management website, Daxiang official account, and multi-terminal SDK capabilities, helping integrated businesses achieve at least 80% efficiency improvement in complaint resolution. During my tenure leading Diting, I integrated 37 businesses and assisted in resolving 2,231 complaints. The error code management website has accumulated 479 error code knowledge base entries.',
+        technologies: ['JavaScript', 'HTML&HTML5', 'CSS&CSS5', 'Nodejs', 'Mysql'],
+      },
+      {
+        name: 'Infinite Technology Project',
+        description:
+          'Developed a comprehensive animation platform to address the limitations of existing CSS and JavaScript animation solutions. Conducted extensive technical research on various animation and rendering technologies including Lottie, Three.js, VAP, Unity, and others. Built an animation platform supporting transparent video, gyroscope effects, Lottie, and other animation types, with capabilities for animation creation, hosting, editing, reuse, deployment, and open API integration. Developed multi-terminal SDKs for iOS, Android, Front-End, and Mini Programs. The platform provides a systematic solution integrating hosting, reuse, creation, generation, configuration, deployment, publishing, and end-to-end support capabilities. Currently hosts 3,498 animations, serves 124 teams, and businesses integrating animations have achieved an average CTR increase of over 10%.',
+        technologies: ['JavaScript', 'HTML&HTML5', 'CSS&CSS5', 'Nodejs', 'Mysql', 'Lottie', 'VAP'],
       },
     ],
   },
