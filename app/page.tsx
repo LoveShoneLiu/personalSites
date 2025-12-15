@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { formatDate } from '@/lib/utils';
 import styles from './page.module.scss';
 
 // 个人信息
@@ -186,8 +188,38 @@ const honors = [
 
 type Honor = (typeof honors)[number];
 
+type HomeBlogPost = {
+  id: number;
+  title: string;
+  description: string | null;
+  createdAt: string | Date | null;
+};
+
 const HomePage = () => {
   const [activeHonor, setActiveHonor] = useState<Honor | null>(null);
+  const [latestPosts, setLatestPosts] = useState<HomeBlogPost[]>([]);
+
+  useEffect(() => {
+    async function fetchLatestPosts() {
+      try {
+        const res = await fetch('/api/posts');
+        if (!res.ok) return;
+        const data: any[] = await res.json();
+        const published = data.filter((item) => item.isPublished);
+        const topThree = published.slice(0, 3).map((item) => ({
+          id: item.id,
+          title: item.title,
+          description: item.description,
+          createdAt: item.createdAt,
+        }));
+        setLatestPosts(topThree);
+      } catch {
+        // 静默失败，不影响首页其他内容
+      }
+    }
+
+    fetchLatestPosts();
+  }, []);
 
   return (
     <div className={styles.homePage}>
@@ -384,6 +416,44 @@ const HomePage = () => {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Blog Section */}
+      <section className={`${styles.section} ${styles.blogSection}`}>
+        <div className="container">
+          <h2 className={styles.sectionTitle}>Blog</h2>
+          <p className={styles.blogIntro}>
+            Welcome to read my blog for more details about my projects and thinking.
+          </p>
+          {latestPosts.length > 0 && (
+            <div className={styles.blogGrid}>
+              {latestPosts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/bloginfo/${post.id}`}
+                  className={styles.blogCard}
+                >
+                  <h3 className={styles.blogCardTitle}>{post.title}</h3>
+                  {post.description && (
+                    <p className={styles.blogCardDescription}>{post.description}</p>
+                  )}
+                  <div className={styles.blogCardMeta}>
+                    {post.createdAt && (
+                      <span className={styles.blogCardDate}>
+                        {formatDate(post.createdAt)}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+          <div className={styles.blogActions}>
+            <Link href="/blog" className={styles.primaryButton}>
+              Visit My Tech Blog
+            </Link>
           </div>
         </div>
       </section>

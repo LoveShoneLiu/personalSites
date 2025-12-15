@@ -256,6 +256,93 @@
   background: var(--color-bg-secondary);
 }
 
+.blogSection {
+  background: var(--color-bg);
+}
+
+.blogIntro {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+  max-width: 720px;
+  margin: 0 auto var(--spacing-xl);
+  text-align: center;
+}
+
+.blogGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-lg);
+  margin: 0 auto var(--spacing-xl);
+  max-width: 1040px;
+}
+
+.blogCard {
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-xl);
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border-light);
+  text-decoration: none;
+  transition: all var(--transition-base);
+  color: inherit;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--color-primary);
+  }
+}
+
+.blogCardTitle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-text);
+}
+
+.blogCardDescription {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: var(--spacing-md);
+}
+
+.blogCardMeta {
+  margin-top: auto;
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+}
+
+.blogCardDate {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  &::before {
+    content: '📅';
+  }
+}
+
+.blogActions {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 968px) {
+  .blogGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .blogGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
 .honorsContent {
   display: block;
   max-width: 1040px; // 与时间轴和教育板块保持一致宽度（整体略放大）
