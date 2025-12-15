@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import styles from '@/app/layout.module.scss';
 import LoginModal from './LoginModal';
 
 const Header = () => {
+  const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
@@ -78,16 +80,22 @@ const Header = () => {
 
             <div className={styles.headerRight}>
               <nav className={styles.nav}>
-                <Link href="/" className={styles.navLink}>
+                <Link
+                  href="/"
+                  className={`${styles.navLink} ${pathname === '/' ? styles.navLinkActive : ''}`}
+                >
                   Home
                 </Link>
-                <Link href="/blog" className={styles.navLink}>
+                <Link
+                  href="/blog"
+                  className={`${styles.navLink} ${pathname?.startsWith('/blog') ? styles.navLinkActive : ''}`}
+                >
                   Blog
                 </Link>
                 {isLoggedIn ? (
                   <button
                     type="button"
-                    className={styles.navLink}
+                    className={`${styles.navLink} ${pathname === '/manage' ? styles.navLinkActive : ''}`}
                     onClick={() => {
                       // eslint-disable-next-line no-console
                       console.log('Manage button clicked, navigating to /manage');

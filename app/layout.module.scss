@@ -108,6 +108,15 @@
   }
 }
 
+.navLinkActive {
+  color: var(--color-text);
+  font-weight: 600;
+
+  &::after {
+    width: 100%;
+  }
+}
+
 .headerRight {
   display: flex;
   align-items: center;
