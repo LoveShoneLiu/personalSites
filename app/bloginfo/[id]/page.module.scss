@@ -114,6 +114,11 @@
   font-size: 1.125rem;
   line-height: 1.8;
   color: var(--color-text);
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 
   // Typography styles for rich content (scoped under .content)
   h1,
