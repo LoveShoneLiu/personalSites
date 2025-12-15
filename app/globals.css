@@ -1,26 +1,26 @@
 :root {
-  /* Modern Color Palette - Warm purple/magenta theme */
-  --color-primary: #a855f7;
-  --color-primary-dark: #9333ea;
-  --color-primary-light: #c084fc;
-  --color-secondary: #ec4899;
-  --color-secondary-dark: #db2777;
-  --color-accent: #f59e0b;
-  --color-accent-dark: #d97706;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
+  /* Modern Color Palette - Soft misty blue + warm gray, more gentle */
+  --color-primary: #3b82f6; /* soft sky blue */
+  --color-primary-dark: #1d4ed8;
+  --color-primary-light: #bfdbfe;
+  --color-secondary: #22c1c3; /* soft teal */
+  --color-secondary-dark: #0f766e;
+  --color-accent: #facc15; /* soft gold accent */
+  --color-accent-dark: #eab308;
+  --color-success: #16a34a;
+  --color-warning: #f97316;
   --color-error: #ef4444;
   
-  /* Background Colors - Softer, more elegant */
-  --color-bg: #fafbfc;
-  --color-bg-secondary: #f1f5f9;
-  --color-bg-tertiary: #e2e8f0;
+  /* Background Colors - Soft warm gray / off-white */
+  --color-bg: #faf7f2;
+  --color-bg-secondary: #f3efe7;
+  --color-bg-tertiary: #e5ded2;
   --color-surface: #ffffff;
   --color-surface-elevated: #ffffff;
   --color-border: #e2e8f0;
   --color-border-light: #f1f5f9;
   
-  /* Text Colors - Better contrast and hierarchy */
+  /* Text Colors - Slightly softened contrast */
   --color-text: #0f172a;
   --color-text-secondary: #475569;
   --color-text-tertiary: #94a3b8;
@@ -70,11 +70,27 @@
   --container-max-width: 1280px;
   --container-padding: var(--spacing-lg);
   
-  /* Gradients - Modern, subtle gradients */
-  --gradient-primary: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-  --gradient-accent: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%);
+  /* Gradients - Soft, misty gradients */
+  --gradient-primary: linear-gradient(
+    135deg,
+    #e0f2fe 0%,
+    rgba(59, 130, 246, 0.95) 45%,
+    rgba(34, 193, 195, 0.9) 100%
+  );
+  --gradient-accent: linear-gradient(
+    135deg,
+    rgba(250, 204, 21, 0.18) 0%,
+    rgba(59, 130, 246, 0.15) 40%,
+    #fef9c3 100%
+  );
   --gradient-surface: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg-secondary) 100%);
-  --gradient-text: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 50%, var(--color-accent) 100%);
+  --gradient-text: linear-gradient(
+    135deg,
+    #0f172a 0%,
+    #3b82f6 40%,
+    #22c1c3 80%,
+    #facc15 100%
+  );
 }
 
 @media (prefers-color-scheme: dark) {

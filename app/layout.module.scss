@@ -43,7 +43,7 @@
   background: var(--gradient-primary);
   border-radius: 50%;
   animation: pulse 2s ease-in-out infinite;
-  box-shadow: 0 0 12px rgba(168, 85, 247, 0.4);
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.45); /* soft blue glow to match new primary */
 }
 
 @keyframes pulse {
