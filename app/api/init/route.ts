@@ -1,0 +1,16 @@
+import { NextResponse } from 'next/server';
+import { initializeDatabase } from '@/lib/server/auth';
+
+export async function GET() {
+  try {
+    await initializeDatabase();
+    return NextResponse.json({ message: 'Database initialized successfully' });
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error('Database initialization error:', error);
+    return NextResponse.json(
+      { error: 'Failed to initialize database' },
+      { status: 500 },
+    );
+  }
+}

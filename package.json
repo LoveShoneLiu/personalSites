@@ -1,24 +1,52 @@
 {
-  "name": "nextjs",
-  "version": "0.1.0",
+  "name": "personal-portfolio",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint . --ext .ts,.tsx,.js --max-warnings 0",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "db:generate": "drizzle-kit generate",
+    "db:push": "drizzle-kit push",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "15.2.3"
+    "@neondatabase/serverless": "^1.0.2",
+    "@tiptap/extension-image": "^3.13.0",
+    "@tiptap/extension-link": "^3.13.0",
+    "@tiptap/extension-placeholder": "^3.13.0",
+    "@tiptap/extension-task-item": "^3.13.0",
+    "@tiptap/extension-task-list": "^3.13.0",
+    "@tiptap/extension-underline": "^3.13.0",
+    "@tiptap/react": "^3.13.0",
+    "@tiptap/starter-kit": "^3.13.0",
+    "@tiptap/suggestion": "^3.13.0",
+    "bcryptjs": "^2.4.3",
+    "drizzle-orm": "^0.44.7",
+    "framer-motion": "^11.15.0",
+    "next": "15.5.7",
+    "react": "19.1.2",
+    "react-dom": "19.1.2"
   },
   "devDependencies": {
-    "typescript": "^5",
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@tailwindcss/postcss": "^4",
-    "tailwindcss": "^4"
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "drizzle-kit": "^0.31.0",
+    "eslint": "^8.57.1",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-config-airbnb-typescript": "^18.0.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "sass": "^1.83.0",
+    "typescript": "^5"
   }
 }
