@@ -81,13 +81,13 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to see your site.
 
-## 🔐 Admin Access
+<!-- ## 🔐 Admin Access
 
 Default admin credentials:
 - **Username**: admin
 - **Password**: asdf7896
 
-⚠️ **Important**: Change these credentials in production!
+⚠️ **Important**: Change these credentials in production! -->
 
 ## 📦 Tech Stack
 
