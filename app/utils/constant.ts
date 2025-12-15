@@ -10,6 +10,7 @@ export const personalInfo = {
   phone: 'To Be Determined',
   wechat: 'ShoneLiu007', // 微信id
   location: 'Auckland, New Zealand',
+  visaStatus: 'Partner of Work Visa (Spouse)', // 当前签证状态
   bio: [
     'I am a senior front-end engineer with 10 years of experience in large-scale web application development, with roughly 460,000 lines of code produced. I have worked at Bangzhidian Technology, Cheetah Mobile, Momo, and Meituan.',
     'During my six years at Meituan, I was responsible for front-end development of the membership system on both mobile (C-end) and PC platforms, serving pages with tens of millions of daily PV. I have strong experience in large-scale front-end development, performance optimization, and stability assurance.',

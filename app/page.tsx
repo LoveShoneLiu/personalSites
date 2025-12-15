@@ -88,6 +88,13 @@ const HomePage = () => {
                 <span className={styles.highlight}>{personalInfo.name}</span>
               </h1>
               <p className={styles.heroSubtitle}>{personalInfo.title}</p>
+              <div className={styles.heroMeta}>
+                <span className={styles.heroVisaBadge}>
+                  Visa Status:
+                  {' '}
+                  {personalInfo.visaStatus}
+                </span>
+              </div>
               {Array.isArray(personalInfo.bio) ? (
                 personalInfo.bio.map((text) => (
                   <p key={text.substring(0, 20)} className={styles.heroBio}>
