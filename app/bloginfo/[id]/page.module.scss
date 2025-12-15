@@ -114,6 +114,11 @@
   font-size: 1.125rem;
   line-height: 1.8;
   color: var(--color-text);
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 
   // Typography styles for rich content (scoped under .content)
   h1,
@@ -162,12 +167,12 @@
 
   ul,
   ol {
-    margin-bottom: var(--spacing-lg);
-    padding-left: var(--spacing-2xl);
+    margin-bottom: var(--spacing-sm);
+    padding-left: var(--spacing-xl);
   }
 
   li {
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 0.1rem;
   }
 
   blockquote {
