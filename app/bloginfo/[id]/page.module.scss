@@ -167,12 +167,12 @@
 
   ul,
   ol {
-    margin-bottom: var(--spacing-lg);
-    padding-left: var(--spacing-2xl);
+    margin-bottom: var(--spacing-sm);
+    padding-left: var(--spacing-xl);
   }
 
   li {
-    margin-bottom: var(--spacing-sm);
+    margin-bottom: 0.1rem;
   }
 
   blockquote {
