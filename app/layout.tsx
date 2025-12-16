@@ -1,4 +1,6 @@
 import type { Metadata } from 'next';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { Analytics } from '@vercel/analytics/next';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import './globals.css';
@@ -26,6 +28,7 @@ const RootLayout = ({
       <Header />
       <main className={styles.main}>{children}</main>
       <Footer />
+      <Analytics />
     </body>
   </html>
 );

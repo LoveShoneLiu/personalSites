@@ -229,9 +229,9 @@ const HomePage = () => {
                 <li>Long-term charity monthly donor recognition.</li>
               </ul>
             </div>
-            {/* 第一排：3 列 */}
+            {/* 第一排：2 列 */}
             <div className={styles.honorsGridTop}>
-              {honors.slice(0, 3).map((item) => (
+              {honors.slice(3).map((item) => (
                 <button
                   key={item.title}
                   type="button"
@@ -253,9 +253,9 @@ const HomePage = () => {
                 </button>
               ))}
             </div>
-            {/* 第二排：2 列 */}
+            {/* 第二排：3 列 */}
             <div className={styles.honorsGridBottom}>
-              {honors.slice(3).map((item) => (
+              {honors.slice(0, 3).map((item) => (
                 <button
                   key={item.title}
                   type="button"
