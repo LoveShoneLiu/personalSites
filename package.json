@@ -23,6 +23,7 @@
     "@tiptap/react": "^3.13.0",
     "@tiptap/starter-kit": "^3.13.0",
     "@tiptap/suggestion": "^3.13.0",
+    "@vercel/analytics": "^1.6.1",
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.44.7",
     "framer-motion": "^11.15.0",
