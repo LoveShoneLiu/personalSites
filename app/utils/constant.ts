@@ -6,8 +6,8 @@ export const personalInfo = {
   title: 'Senior Frontend Engineer',
   avatar: '/shaofeiliu.jpg', // 位于 public 目录下的头像图片
   email: 'isshaofeiliu@gmail.com',
-  // phone: '+64 (029) 0255 5581',
-  phone: 'To Be Determined',
+  phone: '+64 (029) 0255 5581',
+  // phone: 'To Be Determined',
   wechat: 'ShoneLiu007', // 微信id
   location: 'Auckland, New Zealand',
   visaStatus: 'Partner of Work Visa (Spouse)', // 当前签证状态
