@@ -102,7 +102,7 @@ export const workExperience = [
     id: 3,
     company: 'Cheetah Mobile (猎豹移动)',
     position: 'Frontend Engineer',
-    period: '2017 - 2018',
+    period: '2016 - 2018',
     location: 'Beijing, China',
     description:
       'Cheetah Mobile is a leading Chinese internet and mobile security software company, renowned for successfully expanding tool applications overseas. The company provides services including AI service robots, overseas advertising agency (official Meta and TikTok partner), and multi-cloud management, committed to becoming a globally leading intelligent service and industry empowerment company in the AI era.',
@@ -119,7 +119,7 @@ export const workExperience = [
     id: 4,
     company: 'Beijing Percent Technology Co., Ltd.',
     position: 'Frontend Engineer',
-    period: '2015 - 2017',
+    period: '2015 - 2016',
     location: 'Beijing, China',
     description:
       'Started my career as a web frontend developer, building enterprise data products and internal systems, and establishing solid fundamentals in JavaScript, CSS, and engineering practices.',
