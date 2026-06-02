@@ -26,6 +26,18 @@ export const posts = pgTable('posts', {
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
+// SmileLife 外部登录用户表，和本站后台 users 表完全隔离
+export const smilelifeAuthUsers = pgTable('smilelife_auth_users', {
+  id: serial('id').primaryKey(),
+  email: varchar('email', { length: 255 }).unique(),
+  phone: varchar('phone', { length: 50 }).unique(),
+  passwordHash: varchar('password_hash', { length: 255 }).notNull(),
+  status: varchar('status', { length: 50 }).default('active').notNull(),
+  lastLoginAt: timestamp('last_login_at'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Post = typeof posts.$inferSelect;
