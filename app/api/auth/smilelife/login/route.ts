@@ -3,6 +3,11 @@ import { verifySmilelifeUserLogin } from '@/lib/server/smilelifeAuth';
 
 // SmileLife 登录接口只负责 HTTP 层：CORS、请求解析、响应封装。
 // 账号校验逻辑放在 lib/server/smilelifeAuth.ts，避免和本站后台登录耦合。
+const MOBILE_APP_ORIGINS = [
+  'capacitor://localhost',
+  'ionic://localhost',
+];
+
 const getAllowedOrigins = () => (
   process.env.SMILELIFE_ALLOWED_ORIGINS || ''
 )
@@ -21,7 +26,8 @@ const isLocalhostOrigin = (origin: string) => {
 };
 
 const isAllowedOrigin = (origin: string, allowedOrigins: string[]) => (
-  allowedOrigins.includes(origin)
+  MOBILE_APP_ORIGINS.includes(origin)
+  || allowedOrigins.includes(origin)
   || (
     allowedOrigins.includes('http://localhost')
     && isLocalhostOrigin(origin)
