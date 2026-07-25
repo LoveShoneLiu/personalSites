@@ -241,6 +241,22 @@ authenticate request
 
 所有 ID 使用 UUID；金额一律使用整数 cents；业务时间使用 `timestamptz`，购物日期额外保存家庭本地日期。
 
+### 7.0 当前已实现 Schema（首个迁移）
+
+当前首个迁移实际创建 13 张 `receiptly_` 前缀表。以下是已经有 API 或确认流程使用的真值；后续章节的 invitations、预算、洞察、图片存储和价格观测仍只是未来方案，不在当前数据库中。
+
+| 范围 | 表 | 当前字段职责 |
+| --- | --- | --- |
+| 账户 | `receiptly_users`, `receiptly_sessions` | 账号、密码摘要、refresh token 摘要、过期/撤销状态 |
+| 家庭 | `receiptly_households`, `receiptly_household_members` | 家庭时区/币种、成员和角色；`(household_id, user_id)` 唯一 |
+| 小票 | `receiptly_receipts` | 门店原文/标准门店、号码、日期/本地时间、总额、币种、扫描元数据、版本、软删除和客户端幂等草稿 ID |
+| 商品行 | `receiptly_receipt_lines` | 原始 OCR 文本、商品名/标准商品、数量、单位、包装、单价、行价、置信度、来源、是否计入和顺序 |
+| 总额与追溯 | `receiptly_receipt_adjustments`, `receiptly_receipt_confirmations`, `receiptly_audit_events` | 折扣/退款等调整、确认金额快照、操作审计 |
+| 名称标准化 | `receiptly_stores`, `receiptly_products`, `receiptly_product_aliases` | 门店/商品的稳定 ID、规范化名称、OCR 或手工别名；第一版可为空关联，绝不阻塞候选入库 |
+| OCR 运行元数据 | `receiptly_extraction_runs` | 供应商、模型、状态、尝试次数和错误码；不保存图片、图片 hash 或 OCR 全文 |
+
+所有首页商品列表查询只读取 `confirmed` 小票的 `included` 商品行；`needs_review`、草稿和软删除数据没有进入统计的查询路径。
+
 ### 7.1 身份与家庭
 
 | 表 | 核心字段 |
@@ -261,7 +277,7 @@ authenticate request
 | `receipt_images` | `id`, `household_id`, `receipt_id`, `storage_key`, `sha256`, `mime_type`, `size_bytes`, `deleted_at` |
 | `extraction_runs` | `id`, `receipt_id`, `provider`, `model`, `status`, `started_at`, `finished_at`, `error_code` |
 | `extraction_candidates` | `id`, `run_id`, `field_path`, `raw_text`, `candidate_json`, `confidence` |
-| `receipt_lines` | `id`, `household_id`, `receipt_id`, `position`, `raw_text`, `display_name`, `quantity`, `line_cents`, `category_id`, `canonical_product_id`, `line_status` |
+| `receipt_lines` | `id`, `household_id`, `receipt_id`, `sort_order`, `raw_text`, `display_name`, `quantity`, `unit`, `unit_price_cents`, `line_cents`, `product_id`, `line_status` |
 | `receipt_adjustments` | `id`, `receipt_id`, `type`, `amount_cents`, `note` |
 | `receipt_confirmations` | `id`, `receipt_id`, `receipt_version`, `confirmed_by`, `confirmed_at`, `totals_snapshot_json` |
 
@@ -271,9 +287,8 @@ authenticate request
 
 | 表 | 核心字段 |
 | --- | --- |
-| `spend_categories` | `id`, `household_id`, `name`, `kind`, `is_active`, `sort_order` |
 | `canonical_products` | `id`, `household_id`, `display_name`, `status` |
-| `product_aliases` | `id`, `household_id`, `raw_text_normalized`, `product_id`, `category_id`, `pack_rule_json`, `is_active` |
+| `product_aliases` | `id`, `household_id`, `raw_name`, `normalized_name`, `product_id` |
 | `price_observations` | `id`, `household_id`, `receipt_id`, `receipt_line_id`, `product_id`, `store_name`, `purchased_on`, `paid_cents`, `unit_quantity`, `unit_code`, `unit_price_micros`, `comparability`, `reason_code` |
 
 `price_observations` 是可从已确认行重建的派生表。它通过 `receipt_line_id` 唯一约束避免重复生成。单位价可使用高精度整数或 PostgreSQL `numeric`，但不能使用 JavaScript 浮点数作为真值。
@@ -664,3 +679,16 @@ npm ci
 - AI/网络失败时手动录入始终可完成。
 - 原图和导出私有，日志无业务敏感文本。
 - 所有价格结论只描述本家庭历史购买数据。
+
+## 21. 当前数据库扩展设计
+
+本次在既有 receipt / receipt_line 账本基础上增加以下可扩展边界：
+
+- `receiptly_receipts.client_draft_id`：移动端生成 UUID，用于扫描候选的幂等入库；同一家庭和创建者下唯一。
+- `entry_mode`、`scan_provider`、`scan_model`：区分手工与扫描来源，保留可审计的供应商/模型元数据，不保存原图。
+- `receiptly_stores`：将来把自由文本门店逐步归一化；当前仍保留 `store_name`，避免 OCR 候选因不确定而无法入库。
+- `receiptly_products` 和 `receiptly_product_aliases`：为用户确认过的商品名、OCR 别名和后续跨小票筛选提供稳定身份；当前不会自动篡改候选商品名。
+- `receiptly_receipt_lines.product_id`：可空外键，只有用户确认或规则足够可靠时才关联 canonical product。
+- `receiptly_extraction_runs`：记录识别提供商、模型、尝试次数、状态和错误码，供以后重试和监控；明确不保存原图、图片 hash 或 OCR 全文。
+
+首页查询始终以 confirmed receipt line 为源表，避免草稿、待确认或删除记录进入消费统计。数据量增长后，可从该稳定源表构建可重放的汇总表或物化视图，而不改变移动端接口。

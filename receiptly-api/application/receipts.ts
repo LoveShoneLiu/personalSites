@@ -2,6 +2,8 @@ import {
   and, asc, eq, isNull,
 } from 'drizzle-orm';
 import { ReceiptlyError } from '@/receiptly-api/contracts/errors';
+import { ReceiptCandidate } from '@/receiptly-api/contracts/receipt-candidate';
+import { reconcileCandidate } from '@/receiptly-api/application/candidate-reconciliation';
 import { ReceiptlyActor, requireMembership } from '@/receiptly-api/infrastructure/auth/guard';
 import {
   auditEvents,
@@ -10,7 +12,6 @@ import {
   receiptConfirmations,
   receiptLines,
   receipts,
-  spendCategories,
 } from '@/receiptly-api/infrastructure/database/client';
 import { ReceiptExtraction } from '@/receiptly-api/infrastructure/ai/openrouter';
 
@@ -18,13 +19,38 @@ type ReceiptInput = { storeName: string | null; purchasedOn: string; totalCents:
 type LineInput = {
   displayName: string;
   lineCents: number;
-  categoryId: string | null;
   rawText?: string | null;
   quantity?: string;
   packValue?: string | null;
   packUnit?: string | null;
   promotion?: string;
   status?: 'included' | 'excluded';
+};
+
+export type PersistedCandidateDetail = {
+  receipt: {
+    id: string;
+    status: 'draft' | 'processing' | 'needs_review' | 'confirmed' | 'deleted';
+    storeName: string | null;
+    receiptNumber: string | null;
+    purchasedOn: string | null;
+    purchasedAtLocal: string | null;
+    currency: string | null;
+    declaredTotalCents: number | null;
+    version: number;
+  };
+  lines: Array<{
+    id: string;
+    rawText: string | null;
+    productName: string | null;
+    quantity: string | null;
+    unit: string | null;
+    unitPriceCents: number | null;
+    unitPriceBasis: string | null;
+    linePriceCents: number | null;
+    source: 'ai' | 'manual';
+    included: boolean;
+  }>;
 };
 
 const loadReceipt = async (receiptId: string, actor: ReceiptlyActor) => {
@@ -62,24 +88,34 @@ const receiptDetail = async (receiptId: string) => {
   return { receipt, lines, adjustments };
 };
 
-export const listCategories = async (actor: ReceiptlyActor, householdId: string) => {
-  await requireMembership(actor, householdId);
-  return getReceiptlyDb().select().from(spendCategories).where(eq(spendCategories.householdId, householdId))
-    .orderBy(asc(spendCategories.sortOrder));
-};
-
-export const createCategory = async (actor: ReceiptlyActor, householdId: string, name: string) => {
-  await requireMembership(actor, householdId, true);
-  const db = getReceiptlyDb();
-  const count = await db
-    .select({ id: spendCategories.id })
-    .from(spendCategories)
-    .where(eq(spendCategories.householdId, householdId));
-  const [category] = await db
-    .insert(spendCategories)
-    .values({ householdId, name, sortOrder: count.length })
-    .returning();
-  return category;
+const candidateDetail = async (receiptId: string): Promise<PersistedCandidateDetail> => {
+  const { receipt, lines } = await receiptDetail(receiptId);
+  if (!receipt) throw new ReceiptlyError(404, 'NOT_FOUND', 'Resource not found.');
+  return {
+    receipt: {
+      id: receipt.id,
+      status: receipt.status,
+      storeName: receipt.storeName,
+      receiptNumber: receipt.receiptNumber,
+      purchasedOn: receipt.purchasedOn,
+      purchasedAtLocal: receipt.purchasedAtLocal,
+      currency: receipt.currency,
+      declaredTotalCents: receipt.totalCents,
+      version: receipt.version,
+    },
+    lines: lines.map((line) => ({
+      id: line.id,
+      rawText: line.rawText,
+      productName: line.displayName,
+      quantity: line.quantity === null ? null : String(line.quantity),
+      unit: line.unit,
+      unitPriceCents: line.unitPriceCents,
+      unitPriceBasis: line.unitPriceBasis,
+      linePriceCents: line.lineCents,
+      source: line.source,
+      included: line.status === 'included',
+    })),
+  };
 };
 
 export const createReceipt = async (actor: ReceiptlyActor, householdId: string, input: ReceiptInput) => {
@@ -120,6 +156,9 @@ export const createScannedReceipt = async (
       totalCents: declaredTotalCents,
       currency,
       status: 'needs_review',
+      entryMode: 'scan',
+      scanProvider: 'openrouter',
+      scanModel: model,
     }).returning();
 
     const candidateLines = extraction.lines.filter((line) => (
@@ -143,7 +182,6 @@ export const createScannedReceipt = async (
           lineCents: line.linePriceCents,
           confidence: line.confidence?.toString() ?? null,
           source: line.source,
-          categoryId: null,
           status: 'included' as const,
         })))
         .returning();
@@ -157,6 +195,172 @@ export const createScannedReceipt = async (
     });
     return { receipt, lines };
   });
+};
+
+/**
+ * Converts the non-persistent /receipts/scan candidate into a real household draft.
+ * `clientDraftId` makes retrying safe when the mobile network disconnects after a write.
+ */
+export const persistScannedCandidate = async (
+  actor: ReceiptlyActor,
+  householdId: string,
+  clientDraftId: string,
+  candidate: ReceiptCandidate,
+) => {
+  await requireMembership(actor, householdId);
+  const db = getReceiptlyDb();
+  const [existing] = await db
+    .select({ id: receipts.id })
+    .from(receipts)
+    .where(and(
+      eq(receipts.householdId, householdId),
+      eq(receipts.creatorId, actor.userId),
+      eq(receipts.clientDraftId, clientDraftId),
+    ))
+    .limit(1);
+  if (existing) return { created: false, detail: await candidateDetail(existing.id) };
+
+  const currency = candidate.currency && /^[a-z]{3}$/i.test(candidate.currency)
+    ? candidate.currency.toUpperCase()
+    : null;
+  const validLines = candidate.lines.filter((line) => (
+    line.rawText !== null || line.productName !== null || line.linePriceCents !== null
+  ));
+
+  const result = await db.transaction(async (tx) => {
+    const [receipt] = await tx.insert(receipts).values({
+      householdId,
+      creatorId: actor.userId,
+      clientDraftId,
+      entryMode: 'scan',
+      status: 'needs_review',
+      storeName: candidate.storeName?.trim() || null,
+      receiptNumber: candidate.receiptNumber?.trim() || null,
+      purchasedOn: candidate.purchasedOn,
+      purchasedAtLocal: candidate.purchasedAtLocal,
+      totalCents: candidate.declaredTotalCents,
+      currency,
+    }).returning();
+    const lines = validLines.length === 0 ? [] : await tx.insert(receiptLines).values(
+      validLines.map((line, sortOrder) => ({
+        householdId,
+        receiptId: receipt.id,
+        sortOrder,
+        rawText: line.rawText?.trim() || null,
+        displayName: line.productName?.trim() || null,
+        quantity: line.quantity,
+        unit: line.unit,
+        unitPriceCents: line.unitPriceCents,
+        unitPriceBasis: line.unitPriceBasis,
+        lineCents: line.linePriceCents,
+        confidence: line.confidence?.toString() ?? null,
+        source: line.source,
+        status: line.included ? 'included' as const : 'excluded' as const,
+      })),
+    ).returning();
+    await tx.insert(auditEvents).values({
+      householdId,
+      actorId: actor.userId,
+      action: 'receipt.candidate_imported',
+      objectType: 'receipt',
+      objectId: receipt.id,
+      changeSummary: { clientDraftId, lineCount: lines.length, imageStored: false },
+    });
+    return receipt.id;
+  });
+  return { created: true, detail: await candidateDetail(result) };
+};
+
+/**
+ * Saves a user-reviewed scan as a confirmed receipt in one transaction.
+ * This is used by the temporary mock-auth confirmation route.
+ */
+export const confirmScannedCandidate = async (
+  actor: ReceiptlyActor,
+  householdId: string,
+  clientDraftId: string,
+  candidate: ReceiptCandidate,
+) => {
+  await requireMembership(actor, householdId);
+  const totals = reconcileCandidate(candidate);
+  if (!totals.canConfirm) {
+    throw new ReceiptlyError(422, 'VALIDATION_ERROR', 'Receipt has incomplete fields and cannot be confirmed.', {
+      blockingReasons: totals.blockingReasons,
+      differenceCents: totals.differenceCents,
+    });
+  }
+
+  const db = getReceiptlyDb();
+  const [existing] = await db
+    .select({ id: receipts.id, status: receipts.status })
+    .from(receipts)
+    .where(and(
+      eq(receipts.householdId, householdId),
+      eq(receipts.creatorId, actor.userId),
+      eq(receipts.clientDraftId, clientDraftId),
+    ))
+    .limit(1);
+  if (existing) {
+    if (existing.status !== 'confirmed') {
+      throw new ReceiptlyError(409, 'VERSION_CONFLICT', 'This scan has already been saved and is awaiting review.');
+    }
+    return { created: false, detail: await candidateDetail(existing.id) };
+  }
+
+  const currency = candidate.currency && /^[a-z]{3}$/i.test(candidate.currency)
+    ? candidate.currency.toUpperCase()
+    : null;
+  const linesToSave = candidate.lines.filter((line) => (
+    line.rawText !== null || line.productName !== null || line.linePriceCents !== null
+  ));
+  const receiptId = await db.transaction(async (tx) => {
+    const [receipt] = await tx.insert(receipts).values({
+      householdId,
+      creatorId: actor.userId,
+      clientDraftId,
+      entryMode: 'scan',
+      status: 'confirmed',
+      storeName: candidate.storeName?.trim() || null,
+      receiptNumber: candidate.receiptNumber?.trim() || null,
+      purchasedOn: candidate.purchasedOn,
+      purchasedAtLocal: candidate.purchasedAtLocal,
+      totalCents: candidate.declaredTotalCents,
+      currency,
+    }).returning();
+    const lines = linesToSave.length === 0 ? [] : await tx.insert(receiptLines).values(
+      linesToSave.map((line, sortOrder) => ({
+        householdId,
+        receiptId: receipt.id,
+        sortOrder,
+        rawText: line.rawText?.trim() || null,
+        displayName: line.productName?.trim() || null,
+        quantity: line.quantity,
+        unit: line.unit,
+        unitPriceCents: line.unitPriceCents,
+        unitPriceBasis: line.unitPriceBasis,
+        lineCents: line.linePriceCents,
+        confidence: line.confidence?.toString() ?? null,
+        source: line.source,
+        status: line.included ? 'included' as const : 'excluded' as const,
+      })),
+    ).returning();
+    await tx.insert(receiptConfirmations).values({
+      receiptId: receipt.id,
+      receiptVersion: receipt.version,
+      confirmedBy: actor.userId,
+      totalsSnapshot: totals,
+    });
+    await tx.insert(auditEvents).values({
+      householdId,
+      actorId: actor.userId,
+      action: 'receipt.scan_confirmed',
+      objectType: 'receipt',
+      objectId: receipt.id,
+      changeSummary: { clientDraftId, lineCount: lines.length, totalCents: receipt.totalCents },
+    });
+    return receipt.id;
+  });
+  return { created: true, detail: await candidateDetail(receiptId) };
 };
 
 export const listReceipts = async (actor: ReceiptlyActor, householdId: string) => {
@@ -177,17 +381,6 @@ export const addReceiptLine = async (actor: ReceiptlyActor, receiptId: string, i
   const receipt = await loadReceipt(receiptId, actor);
   assertEditable(receipt.status);
   const db = getReceiptlyDb();
-  if (input.categoryId) {
-    const category = await db
-      .select({ id: spendCategories.id })
-      .from(spendCategories)
-      .where(and(
-        eq(spendCategories.id, input.categoryId),
-        eq(spendCategories.householdId, receipt.householdId),
-      ))
-      .limit(1);
-    if (!category[0]) throw new ReceiptlyError(400, 'VALIDATION_ERROR', 'categoryId is invalid for this household.');
-  }
   const existing = await db
     .select({ id: receiptLines.id })
     .from(receiptLines)
@@ -198,7 +391,6 @@ export const addReceiptLine = async (actor: ReceiptlyActor, receiptId: string, i
     sortOrder: existing.length,
     displayName: input.displayName,
     lineCents: input.lineCents,
-    categoryId: input.categoryId,
     rawText: input.rawText ?? null,
     quantity: input.quantity ?? '1',
     packValue: input.packValue ?? null,

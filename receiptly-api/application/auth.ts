@@ -9,14 +9,8 @@ import {
   households,
   receiptlySessions,
   receiptlyUsers,
-  spendCategories,
 } from '@/receiptly-api/infrastructure/database/client';
 import { createAccessToken, createRefreshToken, hashToken } from '@/receiptly-api/infrastructure/auth/tokens';
-
-const DEFAULT_CATEGORIES = [
-  'Vegetables & fruit', 'Meat & seafood', 'Dairy & eggs', 'Pantry & bakery', 'Frozen', 'Snacks',
-  'Drinks', 'Cooking', 'Baby', 'Household', 'Personal care', 'Pet', 'Alcohol', 'Other', 'Uncategorised',
-];
 
 const tokenPair = async (userId: string) => {
   const refreshToken = createRefreshToken();
@@ -55,9 +49,6 @@ export const bootstrapOwner = async (input: {
       name: input.householdName, ownerUserId: user.id,
     }).returning();
     await tx.insert(householdMembers).values({ householdId: household.id, userId: user.id, role: 'owner' });
-    await tx.insert(spendCategories).values(DEFAULT_CATEGORIES.map((name, index) => ({
-      householdId: household.id, name, sortOrder: index,
-    })));
     return { user, household };
   });
   return {

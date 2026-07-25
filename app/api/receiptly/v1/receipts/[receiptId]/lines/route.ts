@@ -15,13 +15,11 @@ export async function POST(request: NextRequest, context: Context) {
     const actor = await requireActor(request);
     const { receiptId } = await context.params;
     const body = readObject(await request.json());
-    const categoryId = optionalString(body.categoryId, 'categoryId', 64);
     const status = body.status === undefined ? 'included' : requiredString(body.status, 'status', 20);
     if (status !== 'included' && status !== 'excluded') throw new Error('Invalid line status.');
     const line = await addReceiptLine(actor, receiptId, {
       displayName: requiredString(body.displayName, 'displayName', 300),
       lineCents: requiredInteger(body.lineCents, 'lineCents'),
-      categoryId,
       rawText: optionalString(body.rawText, 'rawText', 500),
       quantity: optionalString(body.quantity, 'quantity', 24) ?? '1',
       packValue: optionalString(body.packValue, 'packValue', 24),

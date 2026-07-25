@@ -52,7 +52,13 @@ export const errorResponse = (error: unknown) => {
     );
   }
 
-  // Keep unexpected details out of API responses and logs.
+  // Log only technical metadata. Request bodies, tokens, and receipt content stay out of logs.
+  // eslint-disable-next-line no-console
+  console.error('Unexpected Receiptly API error.', {
+    requestId,
+    errorName: error instanceof Error ? error.name : typeof error,
+    errorMessage: error instanceof Error ? error.message : 'Non-Error value thrown',
+  });
   return NextResponse.json(
     {
       error: {

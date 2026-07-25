@@ -2,6 +2,7 @@ import {
   boolean,
   date,
   integer,
+  index,
   jsonb,
   numeric,
   pgEnum,
@@ -9,6 +10,7 @@ import {
   text,
   timestamp,
   uuid,
+  uniqueIndex,
   varchar,
 } from 'drizzle-orm/pg-core';
 
@@ -23,6 +25,12 @@ export const receiptStatus = pgEnum('receiptly_receipt_status', [
 ]);
 export const lineStatus = pgEnum('receiptly_line_status', ['included', 'excluded']);
 export const lineSource = pgEnum('receiptly_line_source', ['ai', 'manual']);
+export const receiptEntryMode = pgEnum('receiptly_receipt_entry_mode', ['manual', 'scan']);
+export const extractionRunStatus = pgEnum('receiptly_extraction_run_status', [
+  'processing',
+  'succeeded',
+  'failed',
+]);
 export const adjustmentType = pgEnum('receiptly_adjustment_type', [
   'discount',
   'refund',
@@ -50,7 +58,9 @@ export const receiptlySessions = pgTable('receiptly_sessions', {
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
   createdAt: createdAt(),
-});
+}, (table) => [
+  index('receiptly_sessions_user_expiry_idx').on(table.userId, table.expiresAt),
+]);
 
 export const households = pgTable('receiptly_households', {
   id: id(),
@@ -70,33 +80,81 @@ export const householdMembers = pgTable('receiptly_household_members', {
   role: householdRole('role').notNull(),
   status: membershipStatus('status').notNull().default('active'),
   createdAt: createdAt(),
-});
+}, (table) => [
+  uniqueIndex('receiptly_household_members_household_user_idx').on(table.householdId, table.userId),
+  index('receiptly_household_members_user_status_idx').on(table.userId, table.status),
+]);
 
-export const spendCategories = pgTable('receiptly_spend_categories', {
+export const receiptlyStores = pgTable('receiptly_stores', {
   id: id(),
   householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
-  name: varchar('name', { length: 80 }).notNull(),
+  displayName: varchar('display_name', { length: 160 }).notNull(),
+  normalizedName: varchar('normalized_name', { length: 160 }).notNull(),
   isActive: boolean('is_active').notNull().default(true),
-  sortOrder: integer('sort_order').notNull().default(0),
   createdAt: createdAt(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('receiptly_stores_household_normalized_name_idx').on(table.householdId, table.normalizedName),
+]);
+
+export const receiptlyProducts = pgTable('receiptly_products', {
+  id: id(),
+  householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  displayName: varchar('display_name', { length: 300 }).notNull(),
+  normalizedName: varchar('normalized_name', { length: 300 }).notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('receiptly_products_household_normalized_name_idx').on(table.householdId, table.normalizedName),
+]);
+
+export const receiptlyProductAliases = pgTable('receiptly_product_aliases', {
+  id: id(),
+  householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  productId: uuid('product_id').notNull().references(() => receiptlyProducts.id, { onDelete: 'cascade' }),
+  rawName: varchar('raw_name', { length: 300 }).notNull(),
+  normalizedName: varchar('normalized_name', { length: 300 }).notNull(),
+  source: lineSource('source').notNull().default('manual'),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('receiptly_product_aliases_household_normalized_name_idx').on(
+    table.householdId,
+    table.normalizedName,
+  ),
+]);
 
 export const receipts = pgTable('receiptly_receipts', {
   id: id(),
   householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
   creatorId: uuid('creator_id').notNull().references(() => receiptlyUsers.id),
   status: receiptStatus('status').notNull().default('draft'),
+  entryMode: receiptEntryMode('entry_mode').notNull().default('manual'),
+  // Client-generated UUID. Repeating it must return the same draft, never add a duplicate receipt.
+  clientDraftId: uuid('client_draft_id'),
+  storeId: uuid('store_id').references(() => receiptlyStores.id),
   storeName: varchar('store_name', { length: 160 }),
   receiptNumber: varchar('receipt_number', { length: 160 }),
   purchasedOn: date('purchased_on'),
   purchasedAtLocal: varchar('purchased_at_local', { length: 16 }),
   totalCents: integer('total_cents'),
   currency: varchar('currency', { length: 3 }),
+  scanProvider: varchar('scan_provider', { length: 80 }),
+  scanModel: varchar('scan_model', { length: 160 }),
   version: integer('version').notNull().default(1),
   createdAt: createdAt(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   deletedAt: timestamp('deleted_at', { withTimezone: true }),
-});
+}, (table) => [
+  uniqueIndex('receiptly_receipts_creator_client_draft_idx').on(
+    table.householdId,
+    table.creatorId,
+    table.clientDraftId,
+  ),
+  index('receiptly_receipts_home_lookup_idx').on(table.householdId, table.status, table.purchasedOn),
+]);
 
 export const receiptLines = pgTable('receiptly_receipt_lines', {
   id: id(),
@@ -105,6 +163,7 @@ export const receiptLines = pgTable('receiptly_receipt_lines', {
   sortOrder: integer('sort_order').notNull(),
   rawText: varchar('raw_text', { length: 500 }),
   displayName: varchar('display_name', { length: 300 }),
+  productId: uuid('product_id').references(() => receiptlyProducts.id),
   quantity: numeric('quantity', { precision: 12, scale: 3 }),
   unit: varchar('unit', { length: 16 }),
   packValue: numeric('pack_value', { precision: 12, scale: 3 }),
@@ -114,11 +173,33 @@ export const receiptLines = pgTable('receiptly_receipt_lines', {
   lineCents: integer('line_cents'),
   confidence: numeric('confidence', { precision: 4, scale: 3 }),
   source: lineSource('source').notNull().default('manual'),
-  categoryId: uuid('category_id').references(() => spendCategories.id),
   promotion: varchar('promotion', { length: 40 }).notNull().default('none'),
   status: lineStatus('status').notNull().default('included'),
   createdAt: createdAt(),
-});
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('receiptly_receipt_lines_receipt_sort_order_idx').on(table.receiptId, table.sortOrder),
+  index('receiptly_receipt_lines_home_lookup_idx').on(table.receiptId, table.status),
+  index('receiptly_receipt_lines_product_lookup_idx').on(table.householdId, table.productId, table.status),
+]);
+
+// No original image or OCR full text is stored here. This only supports retries/audit metadata.
+export const receiptlyExtractionRuns = pgTable('receiptly_extraction_runs', {
+  id: id(),
+  householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  receiptId: uuid('receipt_id').references(() => receipts.id, { onDelete: 'cascade' }),
+  provider: varchar('provider', { length: 80 }).notNull(),
+  model: varchar('model', { length: 160 }),
+  status: extractionRunStatus('status').notNull(),
+  attempt: integer('attempt').notNull().default(1),
+  errorCode: varchar('error_code', { length: 80 }),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+  completedAt: timestamp('completed_at', { withTimezone: true }),
+  createdAt: createdAt(),
+}, (table) => [
+  index('receiptly_extraction_runs_receipt_idx').on(table.receiptId, table.createdAt),
+  index('receiptly_extraction_runs_status_idx').on(table.householdId, table.status, table.createdAt),
+]);
 
 export const receiptAdjustments = pgTable('receiptly_receipt_adjustments', {
   id: id(),
@@ -127,7 +208,9 @@ export const receiptAdjustments = pgTable('receiptly_receipt_adjustments', {
   amountCents: integer('amount_cents').notNull(),
   note: varchar('note', { length: 500 }),
   createdAt: createdAt(),
-});
+}, (table) => [
+  index('receiptly_receipt_adjustments_receipt_idx').on(table.receiptId),
+]);
 
 export const receiptConfirmations = pgTable('receiptly_receipt_confirmations', {
   id: id(),
@@ -136,7 +219,10 @@ export const receiptConfirmations = pgTable('receiptly_receipt_confirmations', {
   confirmedBy: uuid('confirmed_by').notNull().references(() => receiptlyUsers.id),
   totalsSnapshot: jsonb('totals_snapshot').notNull(),
   createdAt: createdAt(),
-});
+}, (table) => [
+  uniqueIndex('receiptly_receipt_confirmations_receipt_version_idx').on(table.receiptId, table.receiptVersion),
+  index('receiptly_receipt_confirmations_receipt_created_idx').on(table.receiptId, table.createdAt),
+]);
 
 export const auditEvents = pgTable('receiptly_audit_events', {
   id: id(),
@@ -147,4 +233,7 @@ export const auditEvents = pgTable('receiptly_audit_events', {
   objectId: uuid('object_id').notNull(),
   changeSummary: jsonb('change_summary').notNull(),
   createdAt: createdAt(),
-});
+}, (table) => [
+  index('receiptly_audit_events_household_created_idx').on(table.householdId, table.createdAt),
+  index('receiptly_audit_events_object_idx').on(table.objectType, table.objectId, table.createdAt),
+]);

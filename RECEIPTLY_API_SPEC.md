@@ -241,10 +241,6 @@ type CandidateReconciliation = {
 
 | Slice | 方法 | 路径 | 权限 | 用途 |
 | --- | --- | --- | --- | --- |
-| A | GET | `/households/:householdId/categories` | Member | 返回 active 分类及历史引用需要的隐藏分类 |
-| A | POST | `/households/:householdId/categories` | Owner | 新建家庭分类 |
-| A | PATCH | `/households/:householdId/categories/:categoryId` | Owner | 重命名、隐藏和排序 |
-| A | DELETE | `/households/:householdId/categories/:categoryId` | Owner | 停用分类；有历史引用时禁止硬删除 |
 
 分类响应必须返回稳定 `id`；改名不能改变历史行引用。
 
@@ -527,7 +523,7 @@ CSV 导出默认只包含已确认收据、正式行、分类、商品和价格�
 
 不要一次实现全部接口。建议顺序：
 
-1. A1：`login/logout/me`、创建/读取 household、categories。
+1. A1：`login/logout/me`、创建/读取 household。
 2. A2：receipt CRUD、line CRUD、adjustments、reconciliation。
 3. A3：validate、confirm、reopen、delete 和对应事务测试。
 4. A4：dashboard、spend aggregation、lines drill-down。
@@ -546,3 +542,45 @@ CSV 导出默认只包含已确认收据、正式行、分类、商品和价格�
 - 所有写操作有审计要求、乐观锁或幂等策略。
 - 所有列表有界、分页并使用排序白名单。
 - Expo 使用由 OpenAPI 生成或封装的 typed client，不能手写一套不一致 DTO。
+
+## 18. 已实现：扫描候选入库与首页商品列表
+
+`POST /receipts/scan` 仍然只是无登录态的 OCR 预览，绝不写入账本。移动端确认候选后，使用以下接口写入家庭草稿：
+
+`POST /households/:householdId/receipts/import-candidate`
+
+- 权限：Bearer 登录态 + 当前家庭 active member。
+- 请求包含 `clientDraftId`（UUID）和 scan 接口返回的 `receipt`、`lines`。
+- `clientDraftId` 在 `householdId + creatorId` 范围内幂等；断网重试返回同一份草稿，不会重复入账。
+- 服务端忽略 scan 预览中的临时 `id`，生成并返回真实数据库 UUID。
+- 草稿固定为 `needs_review`，只可在确认接口成功后进入首页。
+- 201 代表首次写入；200 代表幂等重放。
+
+```json
+{
+  "clientDraftId": "b87a6b4a-4d80-49bd-bd59-0c9fd08d92e7",
+  "receipt": { "storeName": "PAK'nSAVE Albany", "purchasedOn": "2024-02-24", "declaredTotalCents": 6478, "currency": "NZD" },
+  "lines": [{ "productName": "ALMONDS ROASTED SALTED", "quantity": "0.860", "unit": "kg", "linePriceCents": 2537, "included": true, "source": "ai" }]
+}
+```
+
+`GET /households/:householdId/home/expenses?start=YYYY-MM-DD&end=YYYY-MM-DD&store=&product=&receiptNumber=&limit=20&cursor=`
+
+- 权限：Bearer 登录态 + 当前家庭 active member。
+- 仅返回 `confirmed`、未删除、`included` 且有行价的商品行。
+- 支持稳定 cursor 翻页；`limit` 默认为 20，最大 100。
+- `data.summary` 是当前筛选条件下全部已确认商品行的总额与行数；`data.items` 可直接映射首页列表。
+- 不返回图片、OCR prompt、令牌或未确认草稿。
+
+第一版没有“品类”字段、`categories` 接口或分类表；商品按小票原始名称保存。未来如果确实需要分类，会作为独立功能重新设计，而不会影响现有小票与商品行数据。
+
+## 19. 临时 mock 登录态与扫描确认
+
+在真实移动端登录接入前，以下两个路由固定使用 `Receiptly Demo User` 和 `Receiptly Demo Household`，不需要 `Authorization` header：
+
+- `GET /mock/session`：创建（如未存在）并返回固定用户与家庭。
+- `POST /receipts/scan/confirm`：接收 `POST /receipts/scan` 响应中的 `data`（即 `{ receipt, lines }`）。扫描响应的 `receipt.id` 被当作幂等 ID；重复确认不会重复入账。
+
+确认接口先校验门店、日期、总额、商品名、行价以及总额平衡；校验通过后，在同一个事务中写入小票、商品行、确认快照和审计记录，并将小票直接标记为 `confirmed`。因此确认成功后可立即通过首页商品列表读取。
+
+临时 mock 仅用于当前本地联调。真实登录接入时，`/mock/*` 和确认路由中的 mock session 必须替换为 Bearer token 身份验证。
