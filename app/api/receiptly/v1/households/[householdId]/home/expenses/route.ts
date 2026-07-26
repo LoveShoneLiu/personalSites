@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { listHomeExpenses } from '@/receiptly-api/application/home-expenses';
 import { dataResponse, errorResponse, ReceiptlyError } from '@/receiptly-api/contracts/errors';
-import { getMockReceiptlySession } from '@/receiptly-api/infrastructure/auth/mock-session';
+import { requireActor } from '@/receiptly-api/infrastructure/auth/guard';
 
 export const runtime = 'nodejs';
 
@@ -33,18 +33,15 @@ const readLimit = (value: string | null) => {
 /** Returns confirmed line items only; drafts and needs_review receipts are never included. */
 export async function GET(request: NextRequest, context: Context) {
   try {
-    const session = await getMockReceiptlySession();
+    const actor = await requireActor(request);
     const { householdId } = await context.params;
-    if (householdId !== session.household.id) {
-      throw new ReceiptlyError(404, 'NOT_FOUND', 'Resource not found.');
-    }
     const query = request.nextUrl.searchParams;
     const start = optionalDateQuery(query.get('start'), 'start');
     const end = optionalDateQuery(query.get('end'), 'end');
     if (start && end && start > end) {
       throw new ReceiptlyError(400, 'VALIDATION_ERROR', 'start must not be after end.');
     }
-    return dataResponse(await listHomeExpenses(session.actor, householdId, {
+    return dataResponse(await listHomeExpenses(actor, householdId, {
       start,
       end,
       store: optionalQuery(query.get('store'), 'store', 160),

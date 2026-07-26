@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { ReceiptlyError, dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';
 import { ReceiptCandidateLine } from '@/receiptly-api/contracts/receipt-candidate';
 import { extractReceiptFromImage } from '@/receiptly-api/infrastructure/ai/openrouter';
+import { requireActor } from '@/receiptly-api/infrastructure/auth/guard';
 
 export const runtime = 'nodejs';
 
@@ -42,6 +43,7 @@ const responseLine = (line: ReceiptCandidateLine) => ({
 
 export async function POST(request: NextRequest) {
   try {
+    await requireActor(request);
     let formData: FormData;
     try {
       formData = await request.formData();

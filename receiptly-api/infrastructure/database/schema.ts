@@ -16,6 +16,9 @@ import {
 
 export const householdRole = pgEnum('receiptly_household_role', ['owner', 'member']);
 export const membershipStatus = pgEnum('receiptly_membership_status', ['active', 'removed']);
+export const authProvider = pgEnum('receiptly_auth_provider', ['google', 'apple', 'email']);
+export const authPlatform = pgEnum('receiptly_auth_platform', ['ios', 'android', 'web']);
+export const userStatus = pgEnum('receiptly_user_status', ['active', 'deletion_pending', 'deleted']);
 export const receiptStatus = pgEnum('receiptly_receipt_status', [
   'draft',
   'processing',
@@ -44,22 +47,89 @@ const createdAt = () => timestamp('created_at', { withTimezone: true }).defaultN
 
 export const receiptlyUsers = pgTable('receiptly_users', {
   id: id(),
-  email: varchar('email', { length: 320 }).notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
-  displayName: varchar('display_name', { length: 120 }).notNull(),
+  email: varchar('email', { length: 320 }).unique(),
+  passwordHash: text('password_hash'),
+  displayName: varchar('display_name', { length: 120 }),
+  status: userStatus('status').notNull().default('active'),
+  emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
   createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   disabledAt: timestamp('disabled_at', { withTimezone: true }),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
 });
 
 export const receiptlySessions = pgTable('receiptly_sessions', {
   id: id(),
   userId: uuid('user_id').notNull().references(() => receiptlyUsers.id, { onDelete: 'cascade' }),
+  tokenFamilyId: uuid('token_family_id').notNull(),
   refreshTokenHash: text('refresh_token_hash').notNull().unique(),
+  rotatedFromSessionId: uuid('rotated_from_session_id'),
+  installationId: uuid('installation_id').notNull(),
+  deviceName: varchar('device_name', { length: 160 }),
+  platform: authPlatform('platform').notNull(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  lastUsedAt: timestamp('last_used_at', { withTimezone: true }).defaultNow().notNull(),
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  revokeReason: varchar('revoke_reason', { length: 80 }),
   createdAt: createdAt(),
 }, (table) => [
   index('receiptly_sessions_user_expiry_idx').on(table.userId, table.expiresAt),
+  index('receiptly_sessions_family_idx').on(table.tokenFamilyId, table.revokedAt),
+]);
+
+export const receiptlyAuthIdentities = pgTable('receiptly_auth_identities', {
+  id: id(),
+  userId: uuid('user_id').notNull().references(() => receiptlyUsers.id, { onDelete: 'cascade' }),
+  provider: authProvider('provider').notNull(),
+  providerSubject: varchar('provider_subject', { length: 255 }).notNull(),
+  providerEmail: varchar('provider_email', { length: 320 }),
+  providerEmailVerifiedAt: timestamp('provider_email_verified_at', { withTimezone: true }),
+  profile: jsonb('profile'),
+  createdAt: createdAt(),
+  lastLoginAt: timestamp('last_login_at', { withTimezone: true }).defaultNow().notNull(),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+}, (table) => [
+  uniqueIndex('receiptly_auth_identities_provider_subject_idx').on(table.provider, table.providerSubject),
+  index('receiptly_auth_identities_user_idx').on(table.userId, table.revokedAt),
+]);
+
+export const receiptlyAuthChallenges = pgTable('receiptly_auth_challenges', {
+  id: id(),
+  provider: authProvider('provider').notNull(),
+  rawNonce: varchar('raw_nonce', { length: 128 }).notNull(),
+  stateHash: text('state_hash').notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: createdAt(),
+}, (table) => [
+  index('receiptly_auth_challenges_expiry_idx').on(table.provider, table.expiresAt),
+]);
+
+export const receiptlyEmailLoginCodes = pgTable('receiptly_email_login_codes', {
+  id: id(),
+  email: varchar('email', { length: 320 }).notNull(),
+  codeHash: text('code_hash').notNull(),
+  installationId: uuid('installation_id'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  resendAvailableAt: timestamp('resend_available_at', { withTimezone: true }).notNull(),
+  attemptCount: integer('attempt_count').notNull().default(0),
+  consumedAt: timestamp('consumed_at', { withTimezone: true }),
+  createdAt: createdAt(),
+}, (table) => [
+  index('receiptly_email_login_codes_email_created_idx').on(table.email, table.createdAt),
+  index('receiptly_email_login_codes_expiry_idx').on(table.expiresAt),
+]);
+
+export const receiptlyProviderCredentials = pgTable('receiptly_provider_credentials', {
+  id: id(),
+  identityId: uuid('identity_id').notNull().references(() => receiptlyAuthIdentities.id, { onDelete: 'cascade' }),
+  encryptedRefreshToken: text('encrypted_refresh_token').notNull(),
+  encryptionKeyVersion: varchar('encryption_key_version', { length: 40 }).notNull(),
+  validatedAt: timestamp('validated_at', { withTimezone: true }).defaultNow().notNull(),
+  createdAt: createdAt(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex('receiptly_provider_credentials_identity_idx').on(table.identityId),
 ]);
 
 export const households = pgTable('receiptly_households', {

@@ -1,8 +1,18 @@
 # receiptly API 接口方案
 
-状态：Draft v1  
+状态：MVP v1
 日期：2026-07-23  
-服务入口：已上线 personalSites Next.js 项目的 `/api/receiptly/v1`
+生产 API Base URL：`https://liushaofei.cn/api/receiptly/v1`
+
+App 只在环境配置中保存 Base URL，具体请求路径继续使用本文中的相对路径：
+
+```text
+production  https://liushaofei.cn/api/receiptly/v1
+development http://<开发电脑局域网IP>:3000/api/receiptly/v1
+```
+
+iOS 模拟器可使用 `http://127.0.0.1:3000/api/receiptly/v1`；真机不能使用 `localhost` 或
+`127.0.0.1` 访问开发电脑，需要使用同一局域网内的电脑 IP。生产环境必须使用 HTTPS。
 
 ## 1. 接口边界
 
@@ -186,9 +196,284 @@ type CandidateReconciliation = {
 
 ## 3. Auth 接口
 
+### 3.1 iOS 登录 MVP 最终契约（2026-07-25）
+
+以下契约替代本节原有邮箱密码登录方案。三种登录均签发 Receiptly 自己的 Session；Google/Apple Token 不得用于访问业务接口。
+
+统一设备结构：
+
+```json
+{
+  "installationId": "客户端安装时生成并保存在安全存储中的 UUID",
+  "platform": "ios",
+  "name": "Shaofei’s iPhone"
+}
+```
+
+`name` 可为 `null`，不能作为安全凭据。
+
+#### Challenge
+
+`POST /auth/challenges`
+
+```json
+{ "provider": "apple" }
+```
+
+`provider` 只能是 `apple | google`。响应：
+
+```json
+{
+  "data": {
+    "attemptId": "uuid",
+    "nonce": "raw-random-nonce",
+    "state": "opaque-state",
+    "expiresIn": 300
+  }
+}
+```
+
+Challenge 5 分钟有效且只能使用一次。Apple App 对 `nonce` 做 SHA-256 后传给 Apple SDK；登录 Receiptly 时只回传 `attemptId` 和 `state`。服务端通过 `attemptId` 取出 raw nonce，计算 SHA-256 后与 Apple identity token 的 nonce claim 比较。
+
+#### Google
+
+`POST /auth/google`
+
+```json
+{
+  "attemptId": "uuid",
+  "state": "challenge返回的opaque-state",
+  "idToken": "google-id-token",
+  "device": {
+    "installationId": "uuid",
+    "platform": "ios",
+    "name": "iPhone 16 Pro"
+  }
+}
+```
+
+MVP 验证签名、`iss`、`aud`、`azp`、`exp` 和 `sub`，使用 `sub` 作为身份主键。本阶段不要求 authorization code，也不承诺 Google nonce 验证。
+
+#### Apple
+
+`POST /auth/apple`
+
+```json
+{
+  "attemptId": "uuid",
+  "state": "challenge返回的opaque-state",
+  "identityToken": "apple-identity-token",
+  "authorizationCode": "apple-authorization-code",
+  "profile": {
+    "email": null,
+    "givenName": null,
+    "familyName": null
+  },
+  "device": {
+    "installationId": "uuid",
+    "platform": "ios",
+    "name": "iPhone 16 Pro"
+  }
+}
+```
+
+`authorizationCode` 必填；profile 各字段允许 null。第一次收到的姓名和邮箱会保存，后续 null 不覆盖已有值；Apple 私密转发邮箱是合法邮箱。服务端交换并加密保存 Apple refresh token，用于删除账号时撤销授权。
+
+#### 邮箱验证码
+
+`POST /auth/email/request-code`
+
+```json
+{
+  "email": "user@example.com",
+  "locale": "zh-CN"
+}
+```
+
+成功固定返回 `202`：
+
+```json
+{
+  "data": {
+    "expiresIn": 600,
+    "resendAfter": 60
+  }
+}
+```
+
+验证码通过 Resend 发送：6 位数字、10 分钟有效、60 秒后可重发、最多尝试 5 次、验证成功自动注册。邮箱去除首尾空格并转小写；数据库只保存验证码哈希。
+
+`POST /auth/email/verify-code`
+
+```json
+{
+  "email": "user@example.com",
+  "code": "123456",
+  "device": {
+    "installationId": "uuid",
+    "platform": "ios",
+    "name": null
+  }
+}
+```
+
+#### 统一登录响应
+
+Google、Apple、邮箱验证码成功后均返回：
+
+```json
+{
+  "data": {
+    "accessToken": "receiptly-access-token",
+    "refreshToken": "rotating-refresh-token",
+    "expiresIn": 900,
+    "sessionId": "uuid",
+    "user": {
+      "id": "uuid",
+      "email": null,
+      "displayName": null
+    },
+    "households": [],
+    "activeHouseholdId": null,
+    "onboardingState": "needs_profile",
+    "isNewUser": true
+  }
+}
+```
+
+`onboardingState` 为 `needs_profile | needs_household | ready`。当前 MVP 不自动创建家庭，也不按相同邮箱自动合并不同 Provider 身份。
+
+#### Refresh
+
+`POST /auth/refresh`
+
+```json
+{
+  "refreshToken": "current-refresh-token",
+  "installationId": "与登录时相同的UUID"
+}
+```
+
+```json
+{
+  "data": {
+    "accessToken": "new-access-token",
+    "refreshToken": "new-refresh-token",
+    "expiresIn": 900,
+    "sessionId": "new-session-uuid"
+  }
+}
+```
+
+Access Token 有效 15 分钟；Refresh Token 有效 30 天且每次轮换。旧 Refresh Token 再次出现时，服务端撤销该 token family。
+
+#### Logout
+
+`POST /auth/logout`
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+```json
+{ "data": { "loggedOut": true } }
+```
+
+只撤销当前设备 Session。
+
+#### Me
+
+`GET /me`
+
+```http
+Authorization: Bearer <accessToken>
+```
+
+```json
+{
+  "data": {
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com",
+      "displayName": "Shaofei Liu"
+    },
+    "households": [],
+    "activeHouseholdId": null,
+    "onboardingState": "needs_household"
+  }
+}
+```
+
+不提供重复的 `/me/households`。
+
+#### 创建家庭
+
+`POST /households`
+
+```http
+Authorization: Bearer <accessToken>
+Content-Type: application/json
+```
+
+```json
+{
+  "name": "Liu Family",
+  "timezone": "Pacific/Auckland",
+  "currency": "NZD"
+}
+```
+
+返回 `201`：
+
+```json
+{
+  "data": {
+    "household": {
+      "id": "uuid",
+      "name": "Liu Family",
+      "role": "owner",
+      "timezone": "Pacific/Auckland",
+      "currency": "NZD"
+    },
+    "activeHouseholdId": "uuid",
+    "onboardingState": "ready"
+  }
+}
+```
+
+#### 删除账号
+
+`DELETE /me` 要求 Bearer Token。唯一 Owner 且家庭无其他成员时连同家庭数据删除；有其他成员时返回 `OWNER_TRANSFER_REQUIRED`。Apple身份会先撤销 Apple授权。用户身份做不可逆匿名化，所有 Session 同时撤销。
+
+#### MVP 稳定错误码
+
+| HTTP | code | 场景 |
+| ---: | --- | --- |
+| 401 | `ACCESS_TOKEN_EXPIRED` | Access Token 过期，App只刷新一次 |
+| 401 | `REFRESH_TOKEN_INVALID` | Refresh Token无效、过期或设备不匹配 |
+| 401 | `REFRESH_TOKEN_REUSED` | 已轮换 Token再次出现，撤销 token family |
+| 401 | `LOGIN_ATTEMPT_EXPIRED` | Challenge过期或已使用 |
+| 401 | `LOGIN_NONCE_INVALID` | Apple nonce 不匹配 |
+| 401 | `LOGIN_STATE_INVALID` | state 不匹配 |
+| 401 | `PROVIDER_TOKEN_INVALID` | Google/Apple凭据验证失败 |
+| 401 | `EMAIL_CODE_INVALID` | 邮箱验证码错误或已使用 |
+| 401 | `EMAIL_CODE_EXPIRED` | 邮箱验证码过期 |
+| 503 | `EMAIL_DELIVERY_FAILED` | Resend 暂时无法发送验证码 |
+| 409 | `ACCOUNT_LINK_REQUIRED` | 相同邮箱已有其他登录方式 |
+| 409 | `HOUSEHOLD_REQUIRED` | 业务操作前尚未创建/加入家庭 |
+| 409 | `OWNER_TRANSFER_REQUIRED` | 删除账号前必须转让Owner |
+| 429 | `RATE_LIMITED` | 验证码发送过于频繁 |
+
+`GET /mock/session` 仅 `NODE_ENV=development` 可用；preview 和 production 返回 404。开发测试用户使用 CLI 幂等关联 mock household：
+
+```bash
+npm run receiptly:dev:link-mock -- --email user@example.com
+```
+
+### 3.2 后续认证能力
+
 | Slice | 方法 | 路径 | 权限 | 用途 |
 | --- | --- | --- | --- | --- |
-| A | POST | `/auth/login` | Public | 邮箱/密码登录，返回 Expo 使用的 token pair |
 | A | POST | `/auth/logout` | User | 撤销当前 session/token |
 | A | POST | `/auth/refresh` | Refresh token | Mobile 刷新并轮换 token |
 | A | GET | `/me` | User | 当前用户、active household、角色和功能开关 |
@@ -197,18 +482,6 @@ type CandidateReconciliation = {
 | D | POST | `/auth/change-password` | User | 修改密码并可撤销其他 session |
 | D | GET | `/auth/sessions` | User | 查看自己的 active sessions |
 | D | DELETE | `/auth/sessions/:sessionId` | User | 撤销指定 session |
-
-`POST /auth/login`：
-
-```json
-{
-  "email": "owner@example.com",
-  "password": "...",
-  "client": "web"
-}
-```
-
-响应不得包含 password hash、session token hash 或家庭敏感摘要。
 
 ## 4. Household 与成员接口
 

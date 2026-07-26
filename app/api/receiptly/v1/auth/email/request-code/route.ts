@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
-import { refreshSession } from '@/receiptly-api/application/auth';
+import { requestEmailCode } from '@/receiptly-api/application/auth';
+import { requiredEmail } from '@/receiptly-api/contracts/auth-payload';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';
-import { requiredUuid } from '@/receiptly-api/contracts/auth-payload';
 import { readObject, requiredString } from '@/receiptly-api/contracts/validation';
 
 export const runtime = 'nodejs';
@@ -9,10 +9,10 @@ export const runtime = 'nodejs';
 export async function POST(request: NextRequest) {
   try {
     const body = readObject(await request.json());
-    return dataResponse(await refreshSession(
-      requiredString(body.refreshToken, 'refreshToken', 512),
-      requiredUuid(body.installationId, 'installationId'),
-    ));
+    return dataResponse(await requestEmailCode(
+      requiredEmail(body.email),
+      body.locale === undefined ? 'en-NZ' : requiredString(body.locale, 'locale', 16),
+    ), 202);
   } catch (error) {
     return errorResponse(error);
   }

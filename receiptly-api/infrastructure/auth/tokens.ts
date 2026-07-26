@@ -1,13 +1,23 @@
-import { createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import { createHmac, randomBytes } from 'crypto';
+import {
+  errors as joseErrors,
+  jwtVerify,
+  SignJWT,
+} from 'jose';
 import { ReceiptlyError } from '@/receiptly-api/contracts/errors';
 
 type AccessTokenPayload = {
   sub: string;
+  sid: string;
+  jti: string;
+  iat: number;
   exp: number;
   typ: 'access';
 };
 
-const base64Url = (value: string | Buffer) => Buffer.from(value).toString('base64url');
+const ISSUER = 'receiptly-api';
+const AUDIENCE = 'receiptly-mobile';
+
 const secret = () => {
   const value = process.env.RECEIPTLY_TOKEN_SECRET;
   if (!value || value.length < 32) {
@@ -16,38 +26,50 @@ const secret = () => {
   return value;
 };
 
-const signature = (value: string) => createHmac('sha256', secret()).update(value).digest('base64url');
+const signingKey = () => new TextEncoder().encode(secret());
 
-export const createAccessToken = (userId: string) => {
-  const header = base64Url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-  const payload = base64Url(JSON.stringify({ sub: userId, typ: 'access', exp: Math.floor(Date.now() / 1000) + 900 }));
-  const unsigned = `${header}.${payload}`;
-  return `${unsigned}.${signature(unsigned)}`;
-};
+export const createAccessToken = async (userId: string, sessionId: string) => new SignJWT({
+  sid: sessionId,
+  typ: 'access',
+})
+  .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+  .setIssuer(ISSUER)
+  .setAudience(AUDIENCE)
+  .setSubject(userId)
+  .setJti(crypto.randomUUID())
+  .setIssuedAt()
+  .setExpirationTime('15m')
+  .sign(signingKey());
 
-export const verifyAccessToken = (token: string): AccessTokenPayload => {
-  const parts = token.split('.');
-  if (parts.length !== 3) throw new ReceiptlyError(401, 'AUTHENTICATION_INVALID', 'Invalid access token.');
-
-  const unsigned = `${parts[0]}.${parts[1]}`;
-  const expected = Buffer.from(signature(unsigned));
-  const received = Buffer.from(parts[2]);
-  if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
-    throw new ReceiptlyError(401, 'AUTHENTICATION_INVALID', 'Invalid access token.');
-  }
-
+export const verifyAccessToken = async (token: string): Promise<AccessTokenPayload> => {
   try {
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')) as AccessTokenPayload;
-    if (payload.typ !== 'access' || !payload.sub || payload.exp <= Math.floor(Date.now() / 1000)) {
-      throw new ReceiptlyError(401, 'AUTHENTICATION_INVALID', 'Access token has expired.');
+    const { payload } = await jwtVerify(token, signingKey(), {
+      algorithms: ['HS256'],
+      audience: AUDIENCE,
+      issuer: ISSUER,
+    });
+    if (
+      payload.typ !== 'access'
+      || typeof payload.sub !== 'string'
+      || typeof payload.sid !== 'string'
+      || typeof payload.jti !== 'string'
+      || typeof payload.iat !== 'number'
+      || typeof payload.exp !== 'number'
+    ) {
+      throw new ReceiptlyError(401, 'AUTHENTICATION_INVALID', 'Authentication is invalid.');
     }
-    return payload;
+    return payload as unknown as AccessTokenPayload;
   } catch (error) {
     if (error instanceof ReceiptlyError) throw error;
-    throw new ReceiptlyError(401, 'AUTHENTICATION_INVALID', 'Invalid access token.');
+    if (error instanceof joseErrors.JWTExpired) {
+      throw new ReceiptlyError(401, 'ACCESS_TOKEN_EXPIRED', '登录状态已过期。');
+    }
+    throw new ReceiptlyError(401, 'AUTHENTICATION_INVALID', 'Authentication is invalid.');
   }
 };
 
 export const createRefreshToken = () => randomBytes(48).toString('base64url');
 
 export const hashToken = (token: string) => createHmac('sha256', secret()).update(token).digest('hex');
+
+export const hashLoginSecret = (value: string) => createHmac('sha256', secret()).update(value).digest('hex');

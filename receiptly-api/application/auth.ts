@@ -1,97 +1,488 @@
-import bcrypt from 'bcryptjs';
+import { randomInt } from 'crypto';
 import {
-  and, eq, gt, isNull,
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  isNull,
 } from 'drizzle-orm';
+import { Resend } from 'resend';
+import {
+  AuthDevice,
+  AuthProvider,
+  AuthSessionResponse,
+} from '@/receiptly-api/contracts/auth';
 import { ReceiptlyError } from '@/receiptly-api/contracts/errors';
 import {
   getReceiptlyDb,
   householdMembers,
   households,
+  receiptlyAuthChallenges,
+  receiptlyAuthIdentities,
+  receiptlyEmailLoginCodes,
+  receiptlyProviderCredentials,
   receiptlySessions,
   receiptlyUsers,
 } from '@/receiptly-api/infrastructure/database/client';
-import { createAccessToken, createRefreshToken, hashToken } from '@/receiptly-api/infrastructure/auth/tokens';
+import { encryptProviderToken } from '@/receiptly-api/infrastructure/auth/provider-credentials';
+import {
+  exchangeAppleAuthorizationCode,
+  ProviderIdentity,
+  verifyAppleIdentity,
+  verifyGoogleIdentity,
+} from '@/receiptly-api/infrastructure/auth/providers';
+import {
+  createAccessToken,
+  createRefreshToken,
+  hashLoginSecret,
+  hashToken,
+} from '@/receiptly-api/infrastructure/auth/tokens';
 
-const tokenPair = async (userId: string) => {
-  const refreshToken = createRefreshToken();
-  const db = getReceiptlyDb();
-  await db.insert(receiptlySessions).values({
-    userId,
-    refreshTokenHash: hashToken(refreshToken),
-    expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
-  });
-  return { accessToken: createAccessToken(userId), refreshToken, expiresIn: 900 };
-};
+const ACCESS_TOKEN_EXPIRES_IN = 900 as const;
+const REFRESH_TOKEN_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
+const CHALLENGE_LIFETIME_MS = 5 * 60 * 1000;
+const EMAIL_CODE_LIFETIME_MS = 10 * 60 * 1000;
+const EMAIL_RESEND_DELAY_MS = 60 * 1000;
+const EMAIL_MAX_ATTEMPTS = 5;
+const EMAIL_MAX_SENDS_PER_HOUR = 5;
 
-export const bootstrapOwner = async (input: {
-  bootstrapToken: string;
-  email: string;
-  password: string;
-  displayName: string;
-  householdName: string;
-}) => {
-  if (!process.env.RECEIPTLY_BOOTSTRAP_TOKEN || input.bootstrapToken !== process.env.RECEIPTLY_BOOTSTRAP_TOKEN) {
-    throw new ReceiptlyError(403, 'FORBIDDEN', 'Bootstrap token is invalid.');
-  }
-  if (input.password.length < 12) {
-    throw new ReceiptlyError(400, 'VALIDATION_ERROR', 'Password must contain at least 12 characters.');
-  }
-  const db = getReceiptlyDb();
-  const existing = await db.select({ id: receiptlyUsers.id }).from(receiptlyUsers).limit(1);
-  if (existing.length > 0) throw new ReceiptlyError(409, 'VERSION_CONFLICT', 'Receiptly bootstrap has already completed.');
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
-  const passwordHash = await bcrypt.hash(input.password, 12);
-  const result = await db.transaction(async (tx) => {
-    const [user] = await tx.insert(receiptlyUsers).values({
-      email: input.email.toLowerCase(), passwordHash, displayName: input.displayName,
-    }).returning();
-    const [household] = await tx.insert(households).values({
-      name: input.householdName, ownerUserId: user.id,
-    }).returning();
-    await tx.insert(householdMembers).values({ householdId: household.id, userId: user.id, role: 'owner' });
-    return { user, household };
-  });
+const loadHouseholds = async (userId: string) => getReceiptlyDb()
+  .select({
+    id: households.id,
+    name: households.name,
+    role: householdMembers.role,
+    timezone: households.timezone,
+    currency: households.currency,
+  })
+  .from(householdMembers)
+  .innerJoin(households, eq(householdMembers.householdId, households.id))
+  .where(and(
+    eq(householdMembers.userId, userId),
+    eq(householdMembers.status, 'active'),
+    isNull(households.deletedAt),
+  ));
+
+const sessionResponse = async (
+  user: { id: string; email: string | null; displayName: string | null },
+  session: { id: string; refreshToken: string },
+  isNewUser: boolean,
+): Promise<AuthSessionResponse> => {
+  const userHouseholds = await loadHouseholds(user.id);
+  const activeHouseholdId = userHouseholds.length === 1 ? userHouseholds[0].id : null;
+  let onboardingState: 'needs_profile' | 'needs_household' | 'ready' = 'ready';
+  if (!user.displayName) onboardingState = 'needs_profile';
+  else if (userHouseholds.length === 0) onboardingState = 'needs_household';
   return {
-    user: {
-      id: result.user.id,
-      email: result.user.email,
-      displayName: result.user.displayName,
-    },
-    household: result.household,
-    tokens: await tokenPair(result.user.id),
+    accessToken: await createAccessToken(user.id, session.id),
+    refreshToken: session.refreshToken,
+    expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+    sessionId: session.id,
+    user,
+    households: userHouseholds,
+    activeHouseholdId,
+    onboardingState,
+    isNewUser,
   };
 };
 
-export const login = async (email: string, password: string) => {
-  const db = getReceiptlyDb();
-  const result = await db.select().from(receiptlyUsers).where(and(
-    eq(receiptlyUsers.email, email.toLowerCase()),
-    isNull(receiptlyUsers.disabledAt),
-  )).limit(1);
-  const user = result[0];
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-    throw new ReceiptlyError(401, 'AUTHENTICATION_INVALID', 'Email or password is invalid.');
+const createSession = async (
+  userId: string,
+  device: AuthDevice,
+  tokenFamilyId = crypto.randomUUID(),
+  rotatedFromSessionId: string | null = null,
+) => {
+  const refreshToken = createRefreshToken();
+  const [session] = await getReceiptlyDb().insert(receiptlySessions).values({
+    userId,
+    tokenFamilyId,
+    refreshTokenHash: hashToken(refreshToken),
+    rotatedFromSessionId,
+    installationId: device.installationId,
+    deviceName: device.name,
+    platform: device.platform,
+    expiresAt: new Date(Date.now() + REFRESH_TOKEN_LIFETIME_MS),
+  }).returning({ id: receiptlySessions.id });
+  return { id: session.id, refreshToken };
+};
+
+export const createLoginChallenge = async (provider: Exclude<AuthProvider, 'email'>) => {
+  const rawNonce = createRefreshToken();
+  const state = createRefreshToken();
+  const [challenge] = await getReceiptlyDb().insert(receiptlyAuthChallenges).values({
+    provider,
+    rawNonce,
+    stateHash: hashLoginSecret(state),
+    expiresAt: new Date(Date.now() + CHALLENGE_LIFETIME_MS),
+  }).returning({ id: receiptlyAuthChallenges.id });
+  return {
+    attemptId: challenge.id,
+    nonce: rawNonce,
+    state,
+    expiresIn: 300,
+  };
+};
+
+const readChallenge = async (
+  provider: Exclude<AuthProvider, 'email'>,
+  attemptId: string,
+  state: string,
+) => {
+  const [challenge] = await getReceiptlyDb()
+    .select()
+    .from(receiptlyAuthChallenges)
+    .where(and(
+      eq(receiptlyAuthChallenges.id, attemptId),
+      eq(receiptlyAuthChallenges.provider, provider),
+      isNull(receiptlyAuthChallenges.consumedAt),
+    ))
+    .limit(1);
+  if (!challenge || challenge.expiresAt <= new Date()) {
+    throw new ReceiptlyError(401, 'LOGIN_ATTEMPT_EXPIRED', '登录请求已过期，请重试。');
   }
-  return { user: { id: user.id, email: user.email, displayName: user.displayName }, tokens: await tokenPair(user.id) };
+  if (challenge.stateHash !== hashLoginSecret(state)) {
+    throw new ReceiptlyError(401, 'LOGIN_STATE_INVALID', '登录 state 无效。');
+  }
+  return challenge;
 };
 
-export const refresh = async (refreshToken: string) => {
+const consumeChallenge = async (attemptId: string) => {
+  const [consumed] = await getReceiptlyDb()
+    .update(receiptlyAuthChallenges)
+    .set({ consumedAt: new Date() })
+    .where(and(
+      eq(receiptlyAuthChallenges.id, attemptId),
+      isNull(receiptlyAuthChallenges.consumedAt),
+      gt(receiptlyAuthChallenges.expiresAt, new Date()),
+    ))
+    .returning({ id: receiptlyAuthChallenges.id });
+  if (!consumed) throw new ReceiptlyError(401, 'LOGIN_ATTEMPT_EXPIRED', '登录请求已使用或已过期。');
+};
+
+const existingMethodsForEmail = async (email: string) => getReceiptlyDb()
+  .select({ provider: receiptlyAuthIdentities.provider })
+  .from(receiptlyAuthIdentities)
+  .innerJoin(receiptlyUsers, eq(receiptlyAuthIdentities.userId, receiptlyUsers.id))
+  .where(and(
+    eq(receiptlyUsers.email, email),
+    isNull(receiptlyAuthIdentities.revokedAt),
+    isNull(receiptlyUsers.deletedAt),
+  ));
+
+const findOrCreateIdentity = async (
+  provider: AuthProvider,
+  identity: ProviderIdentity,
+  profile: Record<string, unknown> | null,
+) => {
   const db = getReceiptlyDb();
-  const result = await db.select().from(receiptlySessions).where(and(
+  const [existing] = await db
+    .select({
+      identityId: receiptlyAuthIdentities.id,
+      userId: receiptlyUsers.id,
+      email: receiptlyUsers.email,
+      displayName: receiptlyUsers.displayName,
+    })
+    .from(receiptlyAuthIdentities)
+    .innerJoin(receiptlyUsers, eq(receiptlyAuthIdentities.userId, receiptlyUsers.id))
+    .where(and(
+      eq(receiptlyAuthIdentities.provider, provider),
+      eq(receiptlyAuthIdentities.providerSubject, identity.subject),
+      isNull(receiptlyAuthIdentities.revokedAt),
+      isNull(receiptlyUsers.deletedAt),
+    ))
+    .limit(1);
+  if (existing) {
+    await db.update(receiptlyAuthIdentities).set({
+      lastLoginAt: new Date(),
+      providerEmail: identity.email ?? undefined,
+      providerEmailVerifiedAt: identity.emailVerified ? new Date() : undefined,
+    }).where(eq(receiptlyAuthIdentities.id, existing.identityId));
+    return { ...existing, isNewUser: false };
+  }
+
+  if (provider !== 'email' && identity.email) {
+    const methods = await existingMethodsForEmail(identity.email);
+    if (methods.length > 0) {
+      throw new ReceiptlyError(409, 'ACCOUNT_LINK_REQUIRED', '该邮箱已关联其他登录方式，请先使用原方式登录。', {
+        existingMethods: [...new Set(methods.map(({ provider: method }) => method))],
+      });
+    }
+  }
+
+  if (provider === 'email' && identity.email) {
+    const [legacyUser] = await db.select({
+      id: receiptlyUsers.id,
+      email: receiptlyUsers.email,
+      displayName: receiptlyUsers.displayName,
+    }).from(receiptlyUsers).where(and(
+      eq(receiptlyUsers.email, identity.email),
+      isNull(receiptlyUsers.deletedAt),
+    )).limit(1);
+    if (legacyUser) {
+      const [createdIdentity] = await db.insert(receiptlyAuthIdentities).values({
+        userId: legacyUser.id,
+        provider,
+        providerSubject: identity.subject,
+        providerEmail: identity.email,
+        providerEmailVerifiedAt: new Date(),
+      }).returning({ identityId: receiptlyAuthIdentities.id });
+      return {
+        ...legacyUser,
+        ...createdIdentity,
+        userId: legacyUser.id,
+        isNewUser: false,
+      };
+    }
+  }
+
+  return db.transaction(async (tx) => {
+    const [user] = await tx.insert(receiptlyUsers).values({
+      email: identity.email,
+      displayName: identity.displayName,
+      emailVerifiedAt: identity.emailVerified ? new Date() : null,
+    }).returning({
+      id: receiptlyUsers.id,
+      email: receiptlyUsers.email,
+      displayName: receiptlyUsers.displayName,
+    });
+    const [createdIdentity] = await tx.insert(receiptlyAuthIdentities).values({
+      userId: user.id,
+      provider,
+      providerSubject: identity.subject,
+      providerEmail: identity.email,
+      providerEmailVerifiedAt: identity.emailVerified ? new Date() : null,
+      profile,
+    }).returning({ identityId: receiptlyAuthIdentities.id });
+    return {
+      ...user,
+      ...createdIdentity,
+      userId: user.id,
+      isNewUser: true,
+    };
+  });
+};
+
+const completeLogin = async (
+  provider: AuthProvider,
+  identity: ProviderIdentity,
+  profile: Record<string, unknown> | null,
+  device: AuthDevice,
+) => {
+  const result = await findOrCreateIdentity(provider, identity, profile);
+  const session = await createSession(result.userId, device);
+  return {
+    response: await sessionResponse({
+      id: result.userId,
+      email: result.email,
+      displayName: result.displayName,
+    }, session, result.isNewUser),
+    identityId: result.identityId,
+  };
+};
+
+export const loginWithGoogle = async (input: {
+  attemptId: string;
+  state: string;
+  idToken: string;
+  device: AuthDevice;
+}) => {
+  await readChallenge('google', input.attemptId, input.state);
+  const identity = await verifyGoogleIdentity(input.idToken);
+  await consumeChallenge(input.attemptId);
+  return (await completeLogin('google', identity, null, input.device)).response;
+};
+
+export const loginWithApple = async (input: {
+  attemptId: string;
+  state: string;
+  identityToken: string;
+  authorizationCode: string;
+  profile: { email: string | null; givenName: string | null; familyName: string | null };
+  device: AuthDevice;
+}) => {
+  const challenge = await readChallenge('apple', input.attemptId, input.state);
+  const verified = await verifyAppleIdentity(input.identityToken, challenge.rawNonce);
+  const refreshToken = await exchangeAppleAuthorizationCode(input.authorizationCode);
+  await consumeChallenge(input.attemptId);
+  const displayName = [input.profile.givenName, input.profile.familyName].filter(Boolean).join(' ') || null;
+  const identity = {
+    ...verified,
+    displayName,
+  };
+  const result = await completeLogin('apple', identity, input.profile, input.device);
+  await getReceiptlyDb().insert(receiptlyProviderCredentials).values({
+    identityId: result.identityId,
+    encryptedRefreshToken: encryptProviderToken(refreshToken),
+    encryptionKeyVersion: process.env.RECEIPTLY_PROVIDER_ENCRYPTION_KEY_VERSION ?? 'v1',
+  }).onConflictDoUpdate({
+    target: receiptlyProviderCredentials.identityId,
+    set: {
+      encryptedRefreshToken: encryptProviderToken(refreshToken),
+      encryptionKeyVersion: process.env.RECEIPTLY_PROVIDER_ENCRYPTION_KEY_VERSION ?? 'v1',
+      validatedAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+  return result.response;
+};
+
+const resendClient = () => {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) throw new ReceiptlyError(503, 'CONFIGURATION_ERROR', 'Email login is not configured.');
+  return new Resend(apiKey);
+};
+
+export const requestEmailCode = async (emailInput: string, locale: string) => {
+  const email = normalizeEmail(emailInput);
+  const from = process.env.RECEIPTLY_EMAIL_FROM;
+  if (!from) throw new ReceiptlyError(503, 'CONFIGURATION_ERROR', 'Email sender is not configured.');
+  const db = getReceiptlyDb();
+  const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const [recentCount] = await db.select({ count: count() }).from(receiptlyEmailLoginCodes).where(and(
+    eq(receiptlyEmailLoginCodes.email, email),
+    gte(receiptlyEmailLoginCodes.createdAt, hourAgo),
+  ));
+  if (recentCount.count >= EMAIL_MAX_SENDS_PER_HOUR) {
+    throw new ReceiptlyError(429, 'RATE_LIMITED', '验证码请求过于频繁，请稍后重试。', { retryAfter: 3600 });
+  }
+  const [latest] = await db.select().from(receiptlyEmailLoginCodes).where(and(
+    eq(receiptlyEmailLoginCodes.email, email),
+    isNull(receiptlyEmailLoginCodes.consumedAt),
+  )).orderBy(desc(receiptlyEmailLoginCodes.createdAt))
+    .limit(1);
+  if (latest && latest.resendAvailableAt > new Date()) {
+    throw new ReceiptlyError(429, 'RATE_LIMITED', '请稍后再发送验证码。', {
+      retryAfter: Math.ceil((latest.resendAvailableAt.getTime() - Date.now()) / 1000),
+    });
+  }
+
+  const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+  const codeId = crypto.randomUUID();
+  await db.insert(receiptlyEmailLoginCodes).values({
+    id: codeId,
+    email,
+    codeHash: hashLoginSecret(`${codeId}:${email}:${code}`),
+    expiresAt: new Date(Date.now() + EMAIL_CODE_LIFETIME_MS),
+    resendAvailableAt: new Date(Date.now() + EMAIL_RESEND_DELAY_MS),
+  });
+  const subject = locale.toLowerCase().startsWith('zh') ? '您的 Receiptly 登录验证码' : 'Your Receiptly login code';
+  const message = locale.toLowerCase().startsWith('zh')
+    ? `您的验证码是 ${code}，10 分钟内有效。请勿将验证码告诉他人。`
+    : `Your login code is ${code}. It expires in 10 minutes. Do not share it.`;
+  try {
+    const { error } = await resendClient().emails.send({
+      from,
+      to: email,
+      subject,
+      text: message,
+    });
+    if (error) throw new Error(error.message);
+  } catch {
+    await db.update(receiptlyEmailLoginCodes).set({ consumedAt: new Date() }).where(
+      eq(receiptlyEmailLoginCodes.id, codeId),
+    );
+    throw new ReceiptlyError(503, 'EMAIL_DELIVERY_FAILED', '验证码邮件暂时无法发送。');
+  }
+  return { expiresIn: 600, resendAfter: 60 };
+};
+
+export const verifyEmailCode = async (emailInput: string, code: string, device: AuthDevice) => {
+  const email = normalizeEmail(emailInput);
+  const db = getReceiptlyDb();
+  const [loginCode] = await db.select().from(receiptlyEmailLoginCodes).where(and(
+    eq(receiptlyEmailLoginCodes.email, email),
+    isNull(receiptlyEmailLoginCodes.consumedAt),
+  )).orderBy(desc(receiptlyEmailLoginCodes.createdAt))
+    .limit(1);
+  if (!loginCode || loginCode.expiresAt <= new Date()) {
+    throw new ReceiptlyError(401, 'EMAIL_CODE_EXPIRED', '验证码已过期，请重新获取。');
+  }
+  if (loginCode.attemptCount >= EMAIL_MAX_ATTEMPTS) {
+    throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', '验证码尝试次数过多，请重新获取。');
+  }
+  const codeHash = hashLoginSecret(`${loginCode.id}:${email}:${code}`);
+  if (codeHash !== loginCode.codeHash) {
+    await db.update(receiptlyEmailLoginCodes).set({
+      attemptCount: loginCode.attemptCount + 1,
+    }).where(eq(receiptlyEmailLoginCodes.id, loginCode.id));
+    throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', '验证码不正确。', {
+      remainingAttempts: Math.max(0, EMAIL_MAX_ATTEMPTS - loginCode.attemptCount - 1),
+    });
+  }
+  const [consumed] = await db.update(receiptlyEmailLoginCodes).set({
+    consumedAt: new Date(),
+  }).where(and(
+    eq(receiptlyEmailLoginCodes.id, loginCode.id),
+    isNull(receiptlyEmailLoginCodes.consumedAt),
+  )).returning({ id: receiptlyEmailLoginCodes.id });
+  if (!consumed) throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', '验证码已使用。');
+  return (await completeLogin('email', {
+    subject: email,
+    email,
+    emailVerified: true,
+    // Email MVP has no separate profile screen. Use the local part as an editable initial name
+    // so a new user proceeds directly to household onboarding.
+    displayName: email.split('@')[0],
+  }, null, device)).response;
+};
+
+export const refreshSession = async (refreshToken: string, installationId: string) => {
+  const db = getReceiptlyDb();
+  const [current] = await db.select().from(receiptlySessions).where(
     eq(receiptlySessions.refreshTokenHash, hashToken(refreshToken)),
-    isNull(receiptlySessions.revokedAt),
-    gt(receiptlySessions.expiresAt, new Date()),
-  )).limit(1);
-  const session = result[0];
-  if (!session) throw new ReceiptlyError(401, 'AUTHENTICATION_INVALID', 'Refresh token is invalid.');
-  await db.update(receiptlySessions).set({ revokedAt: new Date() }).where(eq(receiptlySessions.id, session.id));
-  return tokenPair(session.userId);
+  ).limit(1);
+  if (!current || current.expiresAt <= new Date() || current.installationId !== installationId) {
+    throw new ReceiptlyError(401, 'REFRESH_TOKEN_INVALID', 'Refresh token无效或已过期。');
+  }
+  if (current.revokedAt) {
+    await db.update(receiptlySessions).set({
+      revokedAt: new Date(),
+      revokeReason: 'refresh_token_reuse',
+    }).where(eq(receiptlySessions.tokenFamilyId, current.tokenFamilyId));
+    throw new ReceiptlyError(401, 'REFRESH_TOKEN_REUSED', '检测到已使用的Refresh Token，当前设备已退出。');
+  }
+
+  const nextRefreshToken = createRefreshToken();
+  const result = await db.transaction(async (tx) => {
+    const [revoked] = await tx.update(receiptlySessions).set({
+      revokedAt: new Date(),
+      revokeReason: 'rotated',
+      lastUsedAt: new Date(),
+    }).where(and(
+      eq(receiptlySessions.id, current.id),
+      isNull(receiptlySessions.revokedAt),
+    )).returning({ id: receiptlySessions.id });
+    if (!revoked) return null;
+    const [next] = await tx.insert(receiptlySessions).values({
+      userId: current.userId,
+      tokenFamilyId: current.tokenFamilyId,
+      refreshTokenHash: hashToken(nextRefreshToken),
+      rotatedFromSessionId: current.id,
+      installationId: current.installationId,
+      deviceName: current.deviceName,
+      platform: current.platform,
+      expiresAt: new Date(Date.now() + REFRESH_TOKEN_LIFETIME_MS),
+    }).returning({ id: receiptlySessions.id });
+    return next;
+  });
+  if (!result) throw new ReceiptlyError(401, 'REFRESH_TOKEN_REUSED', 'Refresh Token已被使用。');
+  return {
+    accessToken: await createAccessToken(current.userId, result.id),
+    refreshToken: nextRefreshToken,
+    expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+    sessionId: result.id,
+  };
 };
 
-export const logout = async (refreshToken: string) => {
-  const db = getReceiptlyDb();
-  await db.update(receiptlySessions).set({ revokedAt: new Date() }).where(eq(
-    receiptlySessions.refreshTokenHash,
-    hashToken(refreshToken),
+export const logoutSession = async (sessionId: string) => {
+  await getReceiptlyDb().update(receiptlySessions).set({
+    revokedAt: new Date(),
+    revokeReason: 'logout',
+  }).where(and(
+    eq(receiptlySessions.id, sessionId),
+    isNull(receiptlySessions.revokedAt),
   ));
 };

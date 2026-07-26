@@ -12,6 +12,7 @@ const mockHouseholdId = '00000000-0000-4000-8000-000000000002';
 
 const mockActor: ReceiptlyActor = {
   userId: mockUserId,
+  sessionId: '00000000-0000-4000-8000-000000000003',
   email: 'receiptly-demo@local.invalid',
   displayName: 'Receiptly Demo User',
 };

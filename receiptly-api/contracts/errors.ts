@@ -3,6 +3,22 @@ import { NextResponse } from 'next/server';
 export type ReceiptlyErrorCode =
   | 'AUTHENTICATION_REQUIRED'
   | 'AUTHENTICATION_INVALID'
+  | 'ACCESS_TOKEN_EXPIRED'
+  | 'REFRESH_TOKEN_INVALID'
+  | 'REFRESH_TOKEN_REUSED'
+  | 'LOGIN_ATTEMPT_EXPIRED'
+  | 'LOGIN_NONCE_INVALID'
+  | 'LOGIN_STATE_INVALID'
+  | 'PROVIDER_TOKEN_INVALID'
+  | 'EMAIL_CODE_INVALID'
+  | 'EMAIL_CODE_EXPIRED'
+  | 'EMAIL_DELIVERY_FAILED'
+  | 'RATE_LIMITED'
+  | 'ACCOUNT_LINK_REQUIRED'
+  | 'IDENTITY_ALREADY_LINKED'
+  | 'HOUSEHOLD_REQUIRED'
+  | 'OWNER_TRANSFER_REQUIRED'
+  | 'DELETION_REAUTH_REQUIRED'
   | 'FORBIDDEN'
   | 'NOT_FOUND'
   | 'VALIDATION_ERROR'
@@ -48,7 +64,7 @@ export const errorResponse = (error: unknown) => {
           requestId,
         },
       },
-      { status: error.status },
+      { status: error.status, headers: { 'Cache-Control': 'private, no-store' } },
     );
   }
 
@@ -67,8 +83,11 @@ export const errorResponse = (error: unknown) => {
         requestId,
       },
     },
-    { status: 500 },
+    { status: 500, headers: { 'Cache-Control': 'private, no-store' } },
   );
 };
 
-export const dataResponse = <T>(data: T, status = 200) => NextResponse.json({ data }, { status });
+export const dataResponse = <T>(data: T, status = 200) => NextResponse.json(
+  { data },
+  { status, headers: { 'Cache-Control': 'private, no-store' } },
+);

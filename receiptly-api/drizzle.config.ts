@@ -12,6 +12,7 @@ export default defineConfig({
   schema: './receiptly-api/infrastructure/database/schema.ts',
   out: './receiptly-api/infrastructure/database/migrations',
   dialect: 'postgresql',
+  tablesFilter: ['receiptly_*'],
   dbCredentials: {
     url: process.env.RECEIPTLY_DATABASE_URL,
   },

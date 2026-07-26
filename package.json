@@ -14,7 +14,8 @@
     "receiptly:db:generate": "drizzle-kit generate --config=receiptly-api/drizzle.config.ts",
     "receiptly:db:migrate": "drizzle-kit migrate --config=receiptly-api/drizzle.config.ts",
     "receiptly:db:push": "drizzle-kit push --config=receiptly-api/drizzle.config.ts",
-    "receiptly:db:studio": "drizzle-kit studio --config=receiptly-api/drizzle.config.ts"
+    "receiptly:db:studio": "drizzle-kit studio --config=receiptly-api/drizzle.config.ts",
+    "receiptly:dev:link-mock": "NODE_ENV=development node scripts/receiptly-link-mock-household.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
@@ -31,9 +32,12 @@
     "bcryptjs": "^2.4.3",
     "drizzle-orm": "^0.44.7",
     "framer-motion": "^11.15.0",
+    "google-auth-library": "^10.9.1",
+    "jose": "^6.2.4",
     "next": "15.5.7",
     "react": "19.1.2",
     "react-dom": "19.1.2",
+    "resend": "^6.18.0",
     "ws": "^8.21.1"
   },
   "devDependencies": {

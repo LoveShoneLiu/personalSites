@@ -3,7 +3,7 @@ import { confirmScannedCandidate } from '@/receiptly-api/application/receipts';
 import { readScannedCandidate } from '@/receiptly-api/contracts/candidate-payload';
 import { dataResponse, errorResponse, ReceiptlyError } from '@/receiptly-api/contracts/errors';
 import { readObject } from '@/receiptly-api/contracts/validation';
-import { getMockReceiptlySession } from '@/receiptly-api/infrastructure/auth/mock-session';
+import { requireActor, requireSingleHousehold } from '@/receiptly-api/infrastructure/auth/guard';
 
 export const runtime = 'nodejs';
 
@@ -15,21 +15,22 @@ const readScanId = (value: unknown) => {
 };
 
 /**
- * Temporary mock-auth endpoint. Send the reviewed `data.receipt` and `data.lines`
- * from POST /receipts/scan. A valid candidate is saved and confirmed atomically.
+ * Send the reviewed `data.receipt` and `data.lines` from POST /receipts/scan.
+ * The authenticated user's single active household is resolved on the server.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = readObject(await request.json());
     const receipt = readObject(body.receipt);
-    const session = await getMockReceiptlySession();
+    const actor = await requireActor(request);
+    const householdId = await requireSingleHousehold(actor);
     const result = await confirmScannedCandidate(
-      session.actor,
-      session.household.id,
+      actor,
+      householdId,
       readScanId(receipt.id),
       readScannedCandidate({ receipt, lines: body.lines }),
     );
-    return dataResponse({ householdId: session.household.id, ...result.detail }, result.created ? 201 : 200);
+    return dataResponse({ householdId, ...result.detail }, result.created ? 201 : 200);
   } catch (error) {
     return errorResponse(error);
   }
