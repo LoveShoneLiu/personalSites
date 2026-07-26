@@ -60,6 +60,9 @@ export const errorResponse = (error: unknown) => {
   if (error instanceof ReceiptlyError) {
     return NextResponse.json(
       {
+        status: error.status,
+        message: error.message,
+        data: null,
         error: {
           code: error.code,
           message: error.message,
@@ -80,6 +83,9 @@ export const errorResponse = (error: unknown) => {
   });
   return NextResponse.json(
     {
+      status: 500,
+      message: 'An unexpected error occurred.',
+      data: null,
       error: {
         code: 'INTERNAL_ERROR',
         message: 'An unexpected error occurred.',
@@ -91,6 +97,10 @@ export const errorResponse = (error: unknown) => {
 };
 
 export const dataResponse = <T>(data: T, status = 200) => NextResponse.json(
-  { data },
+  {
+    status: 0,
+    message: 'success',
+    data,
+  },
   { status, headers: { 'Cache-Control': 'private, no-store' } },
 );

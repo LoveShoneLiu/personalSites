@@ -22,7 +22,12 @@ const encodeCursor = (cursor: HomeCursor) => Buffer.from(JSON.stringify(cursor))
 const decodeCursor = (value: string): HomeCursor => {
   try {
     const parsed = JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as HomeCursor;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.purchasedOn) || !parsed.createdAt || !parsed.id) throw new Error();
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(parsed.purchasedOn)
+      || typeof parsed.createdAt !== 'string'
+      || !parsed.createdAt
+      || !parsed.id
+    ) throw new Error();
     return parsed;
   } catch {
     throw new ReceiptlyError(400, 'VALIDATION_ERROR', 'cursor is invalid.');
@@ -36,7 +41,7 @@ export const listHomeExpenses = async (
 ) => {
   await requireMembership(actor, householdId);
   const db = getReceiptlyDb();
-  const where = [
+  const summaryWhere = [
     eq(receipts.householdId, householdId),
     eq(receipts.status, 'confirmed'),
     isNull(receipts.deletedAt),
@@ -44,23 +49,24 @@ export const listHomeExpenses = async (
     eq(receiptLines.status, 'included'),
     isNotNull(receiptLines.lineCents),
   ];
-  if (filters.start) where.push(gte(receipts.purchasedOn, filters.start));
-  if (filters.end) where.push(lte(receipts.purchasedOn, filters.end));
-  if (filters.store) where.push(ilike(receipts.storeName, `%${filters.store}%`));
-  if (filters.product) where.push(ilike(receiptLines.displayName, `%${filters.product}%`));
-  if (filters.receiptNumber) where.push(ilike(receipts.receiptNumber, `%${filters.receiptNumber}%`));
+  if (filters.start) summaryWhere.push(gte(receipts.purchasedOn, filters.start));
+  if (filters.end) summaryWhere.push(lte(receipts.purchasedOn, filters.end));
+  if (filters.store) summaryWhere.push(ilike(receipts.storeName, `%${filters.store}%`));
+  if (filters.product) summaryWhere.push(ilike(receiptLines.displayName, `%${filters.product}%`));
+  if (filters.receiptNumber) summaryWhere.push(ilike(receipts.receiptNumber, `%${filters.receiptNumber}%`));
 
+  const pageWhere = [...summaryWhere];
   if (filters.cursor) {
     const cursor = decodeCursor(filters.cursor);
-    where.push(or(
+    pageWhere.push(or(
       lt(receipts.purchasedOn, cursor.purchasedOn),
       and(
         eq(receipts.purchasedOn, cursor.purchasedOn),
-        lt(receiptLines.createdAt, new Date(cursor.createdAt)),
+        sql<boolean>`${receiptLines.createdAt} < ${cursor.createdAt}::timestamptz`,
       ),
       and(
         eq(receipts.purchasedOn, cursor.purchasedOn),
-        eq(receiptLines.createdAt, new Date(cursor.createdAt)),
+        sql<boolean>`${receiptLines.createdAt} = ${cursor.createdAt}::timestamptz`,
         lt(receiptLines.id, cursor.id),
       ),
     )!);
@@ -80,18 +86,17 @@ export const listHomeExpenses = async (
       purchasedOn: receipts.purchasedOn,
       purchasedAtLocal: receipts.purchasedAtLocal,
       currency: receipts.currency,
-      createdAt: receiptLines.createdAt,
+      createdAtCursor: sql<string>`${receiptLines.createdAt}::text`,
     })
     .from(receiptLines)
     .innerJoin(receipts, eq(receiptLines.receiptId, receipts.id))
-    .where(and(...where))
+    .where(and(...pageWhere))
     .orderBy(desc(receipts.purchasedOn), desc(receiptLines.createdAt), desc(receiptLines.id))
     .limit(filters.limit + 1);
   const rows = await baseQuery;
   const visibleRows = rows.slice(0, filters.limit);
   const last = visibleRows.at(-1);
 
-  const summaryWhere = where.slice(0, filters.cursor ? -1 : undefined);
   const [summary] = await db
     .select({
       lineCount: count(receiptLines.id),
@@ -122,7 +127,7 @@ export const listHomeExpenses = async (
       hasMore: rows.length > filters.limit,
       nextCursor: rows.length > filters.limit && last ? encodeCursor({
         purchasedOn: last.purchasedOn!,
-        createdAt: last.createdAt.toISOString(),
+        createdAt: last.createdAtCursor,
         id: last.id,
       }) : null,
     },

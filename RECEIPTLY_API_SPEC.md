@@ -69,10 +69,14 @@ receiptly-api/infrastructure # 独立 DB/auth/storage/job adapters
 
 ```json
 {
-  "data": [],
-  "page": {
-    "nextCursor": "opaque-or-null",
-    "hasMore": false
+  "status": 0,
+  "message": "success",
+  "data": {
+    "items": [],
+    "page": {
+      "nextCursor": "opaque-or-null",
+      "hasMore": false
+    }
   }
 }
 ```
@@ -85,6 +89,8 @@ receiptly-api/infrastructure # 独立 DB/auth/storage/job adapters
 
 ```json
 {
+  "status": 0,
+  "message": "success",
   "data": {
     "id": "uuid"
   }
@@ -95,6 +101,8 @@ receiptly-api/infrastructure # 独立 DB/auth/storage/job adapters
 
 ```json
 {
+  "status": 0,
+  "message": "success",
   "data": {
     "jobId": "uuid",
     "status": "queued",
@@ -107,6 +115,9 @@ receiptly-api/infrastructure # 独立 DB/auth/storage/job adapters
 
 ```json
 {
+  "status": 422,
+  "message": "Receipt total does not match confirmed lines.",
+  "data": null,
   "error": {
     "code": "RECEIPT_TOTAL_MISMATCH",
     "message": "Receipt total does not match confirmed lines.",
@@ -120,6 +131,16 @@ receiptly-api/infrastructure # 独立 DB/auth/storage/job adapters
   }
 }
 ```
+
+所有 Receiptly 响应都使用同一顶层 envelope：
+
+- `status`: `0` 表示业务成功；非 `0` 时使用对应 HTTP 状态码。
+- `message`: 成功固定为 `success`；失败时为可展示的错误文案。
+- `data`: 成功时为业务数据；失败时固定为 `null`。
+- `error`: 仅失败时存在，继续提供稳定的 `code`、`details` 和 `requestId` 给 App 做程序化处理。
+
+HTTP 状态码不因 envelope 改变：成功仍为 `200/201/202`，客户端错误仍为 `4xx`，服务端错误仍为
+`5xx`。App 应优先根据 HTTP 状态和 `error.code` 分支，使用顶层 `message` 展示错误。
 
 通用状态码：
 
