@@ -1,4 +1,5 @@
 import { randomInt } from 'crypto';
+import { compare, hash } from 'bcryptjs';
 import {
   and,
   count,
@@ -47,6 +48,10 @@ const EMAIL_CODE_LIFETIME_MS = 10 * 60 * 1000;
 const EMAIL_RESEND_DELAY_MS = 60 * 1000;
 const EMAIL_MAX_ATTEMPTS = 5;
 const EMAIL_MAX_SENDS_PER_HOUR = 5;
+const PASSWORD_HASH_ROUNDS = 12;
+const PASSWORD_MAX_FAILED_ATTEMPTS = 5;
+const PASSWORD_LOCK_MS = 15 * 60 * 1000;
+const DUMMY_PASSWORD_HASH = '$2a$12$AK34kVZ6G8ngtozKoFDPYOf1Q48z72If2mYSuW.oUHHaJuceRpjUW';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
@@ -368,7 +373,9 @@ export const requestEmailCode = async (emailInput: string, locale: string) => {
     expiresAt: new Date(Date.now() + EMAIL_CODE_LIFETIME_MS),
     resendAvailableAt: new Date(Date.now() + EMAIL_RESEND_DELAY_MS),
   });
-  const subject = locale.toLowerCase().startsWith('zh') ? '您的 Receiptly 登录验证码' : 'Your Receiptly login code';
+  const subject = locale.toLowerCase().startsWith('zh')
+    ? '您的 Receiptly 登录/注册验证码'
+    : 'Your Receiptly verification code';
   const message = locale.toLowerCase().startsWith('zh')
     ? `您的验证码是 ${code}，10 分钟内有效。请勿将验证码告诉他人。`
     : `Your login code is ${code}. It expires in 10 minutes. Do not share it.`;
@@ -389,8 +396,7 @@ export const requestEmailCode = async (emailInput: string, locale: string) => {
   return { expiresIn: 600, resendAfter: 60 };
 };
 
-export const verifyEmailCode = async (emailInput: string, code: string, device: AuthDevice) => {
-  const email = normalizeEmail(emailInput);
+const consumeEmailCode = async (email: string, code: string) => {
   const db = getReceiptlyDb();
   const [loginCode] = await db.select().from(receiptlyEmailLoginCodes).where(and(
     eq(receiptlyEmailLoginCodes.email, email),
@@ -419,6 +425,11 @@ export const verifyEmailCode = async (emailInput: string, code: string, device: 
     isNull(receiptlyEmailLoginCodes.consumedAt),
   )).returning({ id: receiptlyEmailLoginCodes.id });
   if (!consumed) throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', '验证码已使用。');
+};
+
+export const verifyEmailCode = async (emailInput: string, code: string, device: AuthDevice) => {
+  const email = normalizeEmail(emailInput);
+  await consumeEmailCode(email, code);
   return (await completeLogin('email', {
     subject: email,
     email,
@@ -427,6 +438,166 @@ export const verifyEmailCode = async (emailInput: string, code: string, device: 
     // so a new user proceeds directly to household onboarding.
     displayName: email.split('@')[0],
   }, null, device)).response;
+};
+
+export const registerWithEmailPassword = async (input: {
+  email: string;
+  password: string;
+  code: string;
+  displayName: string | null;
+  device: AuthDevice;
+}) => {
+  const email = normalizeEmail(input.email);
+  const db = getReceiptlyDb();
+  const [existingUser] = await db.select({
+    id: receiptlyUsers.id,
+    email: receiptlyUsers.email,
+    displayName: receiptlyUsers.displayName,
+    passwordHash: receiptlyUsers.passwordHash,
+  }).from(receiptlyUsers).where(and(
+    eq(receiptlyUsers.email, email),
+    isNull(receiptlyUsers.deletedAt),
+  )).limit(1);
+
+  if (existingUser?.passwordHash) {
+    throw new ReceiptlyError(409, 'EMAIL_ALREADY_REGISTERED', '该邮箱已注册，请直接登录。');
+  }
+
+  let existingEmailIdentityId: string | null = null;
+  if (existingUser) {
+    const [emailIdentity] = await db.select({
+      id: receiptlyAuthIdentities.id,
+    }).from(receiptlyAuthIdentities).where(and(
+      eq(receiptlyAuthIdentities.userId, existingUser.id),
+      eq(receiptlyAuthIdentities.provider, 'email'),
+      isNull(receiptlyAuthIdentities.revokedAt),
+    )).limit(1);
+    if (!emailIdentity) {
+      const methods = await existingMethodsForEmail(email);
+      throw new ReceiptlyError(
+        409,
+        'ACCOUNT_LINK_REQUIRED',
+        '该邮箱已关联其他登录方式，请先使用原方式登录。',
+        { existingMethods: [...new Set(methods.map(({ provider }) => provider))] },
+      );
+    }
+    existingEmailIdentityId = emailIdentity.id;
+  }
+
+  const passwordHash = await hash(input.password, PASSWORD_HASH_ROUNDS);
+  await consumeEmailCode(email, input.code);
+  const displayName = input.displayName ?? email.split('@')[0];
+  const result = await db.transaction(async (tx) => {
+    if (existingUser && existingEmailIdentityId) {
+      const [user] = await tx.update(receiptlyUsers).set({
+        passwordHash,
+        displayName: existingUser.displayName ?? displayName,
+        emailVerifiedAt: new Date(),
+        passwordFailedAttempts: 0,
+        passwordLockedUntil: null,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(receiptlyUsers.id, existingUser.id),
+        isNull(receiptlyUsers.passwordHash),
+      )).returning({
+        id: receiptlyUsers.id,
+        email: receiptlyUsers.email,
+        displayName: receiptlyUsers.displayName,
+      });
+      if (!user) {
+        throw new ReceiptlyError(409, 'EMAIL_ALREADY_REGISTERED', '该邮箱已注册，请直接登录。');
+      }
+      await tx.update(receiptlyAuthIdentities).set({
+        providerEmailVerifiedAt: new Date(),
+        lastLoginAt: new Date(),
+      }).where(eq(receiptlyAuthIdentities.id, existingEmailIdentityId));
+      return { ...user, isNewUser: false };
+    }
+
+    const [user] = await tx.insert(receiptlyUsers).values({
+      email,
+      passwordHash,
+      displayName,
+      emailVerifiedAt: new Date(),
+    }).returning({
+      id: receiptlyUsers.id,
+      email: receiptlyUsers.email,
+      displayName: receiptlyUsers.displayName,
+    });
+    await tx.insert(receiptlyAuthIdentities).values({
+      userId: user.id,
+      provider: 'email',
+      providerSubject: email,
+      providerEmail: email,
+      providerEmailVerifiedAt: new Date(),
+    });
+    return { ...user, isNewUser: true };
+  });
+  const session = await createSession(result.id, input.device);
+  return sessionResponse(result, session, result.isNewUser);
+};
+
+export const loginWithEmailPassword = async (
+  emailInput: string,
+  password: string,
+  device: AuthDevice,
+) => {
+  const email = normalizeEmail(emailInput);
+  const db = getReceiptlyDb();
+  const [account] = await db.select({
+    id: receiptlyUsers.id,
+    email: receiptlyUsers.email,
+    displayName: receiptlyUsers.displayName,
+    passwordHash: receiptlyUsers.passwordHash,
+    passwordFailedAttempts: receiptlyUsers.passwordFailedAttempts,
+    passwordLockedUntil: receiptlyUsers.passwordLockedUntil,
+    identityId: receiptlyAuthIdentities.id,
+  }).from(receiptlyUsers)
+    .innerJoin(receiptlyAuthIdentities, and(
+      eq(receiptlyAuthIdentities.userId, receiptlyUsers.id),
+      eq(receiptlyAuthIdentities.provider, 'email'),
+      isNull(receiptlyAuthIdentities.revokedAt),
+    ))
+    .where(and(
+      eq(receiptlyUsers.email, email),
+      eq(receiptlyUsers.status, 'active'),
+      isNull(receiptlyUsers.deletedAt),
+    ))
+    .limit(1);
+
+  if (account?.passwordLockedUntil && account.passwordLockedUntil > new Date()) {
+    throw new ReceiptlyError(429, 'RATE_LIMITED', '密码尝试次数过多，请稍后重试。', {
+      retryAfter: Math.ceil((account.passwordLockedUntil.getTime() - Date.now()) / 1000),
+    });
+  }
+
+  const passwordMatches = await compare(password, account?.passwordHash ?? DUMMY_PASSWORD_HASH);
+  if (!account?.passwordHash || !passwordMatches) {
+    if (account) {
+      const failedAttempts = (account.passwordLockedUntil ? 0 : account.passwordFailedAttempts) + 1;
+      await db.update(receiptlyUsers).set({
+        passwordFailedAttempts: failedAttempts,
+        passwordLockedUntil: failedAttempts >= PASSWORD_MAX_FAILED_ATTEMPTS
+          ? new Date(Date.now() + PASSWORD_LOCK_MS)
+          : null,
+        updatedAt: new Date(),
+      }).where(eq(receiptlyUsers.id, account.id));
+    }
+    throw new ReceiptlyError(401, 'EMAIL_PASSWORD_INVALID', '邮箱或密码不正确。');
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.update(receiptlyUsers).set({
+      passwordFailedAttempts: 0,
+      passwordLockedUntil: null,
+      updatedAt: new Date(),
+    }).where(eq(receiptlyUsers.id, account.id));
+    await tx.update(receiptlyAuthIdentities).set({
+      lastLoginAt: new Date(),
+    }).where(eq(receiptlyAuthIdentities.id, account.identityId));
+  });
+  const session = await createSession(account.id, device);
+  return sessionResponse(account, session, false);
 };
 
 export const refreshSession = async (refreshToken: string, installationId: string) => {

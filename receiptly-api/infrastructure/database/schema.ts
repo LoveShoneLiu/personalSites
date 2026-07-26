@@ -52,6 +52,8 @@ export const receiptlyUsers = pgTable('receiptly_users', {
   displayName: varchar('display_name', { length: 120 }),
   status: userStatus('status').notNull().default('active'),
   emailVerifiedAt: timestamp('email_verified_at', { withTimezone: true }),
+  passwordFailedAttempts: integer('password_failed_attempts').notNull().default(0),
+  passwordLockedUntil: timestamp('password_locked_until', { withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
   disabledAt: timestamp('disabled_at', { withTimezone: true }),

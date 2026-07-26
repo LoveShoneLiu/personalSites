@@ -21,6 +21,22 @@ export const requiredEmail = (value: unknown, field = 'email') => {
   return result;
 };
 
+export const requiredPassword = (value: unknown, field = 'password') => {
+  if (
+    typeof value !== 'string'
+    || value.length < 8
+    || !value.trim()
+    || new TextEncoder().encode(value).length > 72
+  ) {
+    throw new ReceiptlyError(
+      400,
+      'VALIDATION_ERROR',
+      `${field} must contain 8 to 72 bytes and cannot be blank.`,
+    );
+  }
+  return value;
+};
+
 export const readAuthDevice = (value: unknown): AuthDevice => {
   const device = readObject(value);
   const platform = requiredString(device.platform, 'device.platform', 16);

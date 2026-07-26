@@ -196,9 +196,13 @@ type CandidateReconciliation = {
 
 ## 3. Auth 接口
 
-### 3.1 iOS 登录 MVP 最终契约（2026-07-25）
+### 3.1 iOS 登录 MVP 最终契约（2026-07-26）
 
-以下契约替代本节原有邮箱密码登录方案。三种登录均签发 Receiptly 自己的 Session；Google/Apple Token 不得用于访问业务接口。
+MVP App 只开放邮箱＋密码注册和邮箱＋密码登录。邮箱验证码仅用于注册时验证邮箱；App 登录页
+不展示 Google、Apple 或验证码免密登录入口。Google/Apple 服务端代码暂时保留，但不属于
+本次 MVP 的联调、生产配置和发布范围，延后到下一版本启用。
+
+所有已实现的登录方式都签发 Receiptly 自己的 Session；第三方 Token 永远不得用于访问业务接口。
 
 统一设备结构：
 
@@ -212,7 +216,7 @@ type CandidateReconciliation = {
 
 `name` 可为 `null`，不能作为安全凭据。
 
-#### Challenge
+#### Challenge（下一版本 Google/Apple 登录）
 
 `POST /auth/challenges`
 
@@ -235,7 +239,7 @@ type CandidateReconciliation = {
 
 Challenge 5 分钟有效且只能使用一次。Apple App 对 `nonce` 做 SHA-256 后传给 Apple SDK；登录 Receiptly 时只回传 `attemptId` 和 `state`。服务端通过 `attemptId` 取出 raw nonce，计算 SHA-256 后与 Apple identity token 的 nonce claim 比较。
 
-#### Google
+#### Google（下一版本）
 
 `POST /auth/google`
 
@@ -254,7 +258,7 @@ Challenge 5 分钟有效且只能使用一次。Apple App 对 `nonce` 做 SHA-25
 
 MVP 验证签名、`iss`、`aud`、`azp`、`exp` 和 `sub`，使用 `sub` 作为身份主键。本阶段不要求 authorization code，也不承诺 Google nonce 验证。
 
-#### Apple
+#### Apple（下一版本）
 
 `POST /auth/apple`
 
@@ -317,9 +321,54 @@ MVP 验证签名、`iss`、`aud`、`azp`、`exp` 和 `sub`，使用 `sub` 作为
 }
 ```
 
+#### 邮箱＋密码注册
+
+注册前先调用 `POST /auth/email/request-code` 验证邮箱，然后调用：
+
+`POST /auth/email/register`
+
+```json
+{
+  "email": "user@example.com",
+  "password": "user-password",
+  "code": "123456",
+  "displayName": "Shaofei Liu",
+  "device": {
+    "installationId": "uuid",
+    "platform": "ios",
+    "name": "iPhone 16 Pro"
+  }
+}
+```
+
+`displayName` 可为 `null`；为空时使用邮箱 `@` 前的部分作为初始名称。密码必须至少 8 个字符且
+UTF-8 编码不超过 72 字节。服务端使用 bcrypt cost 12 保存哈希，永远不保存或返回明文密码。
+验证码只能使用一次。新用户返回 `201` 和统一 Session 响应；已经通过验证码免密登录的邮箱可
+通过此接口设置初始密码。
+
+#### 邮箱＋密码登录
+
+`POST /auth/email/login`
+
+```json
+{
+  "email": "user@example.com",
+  "password": "user-password",
+  "device": {
+    "installationId": "uuid",
+    "platform": "ios",
+    "name": "iPhone 16 Pro"
+  }
+}
+```
+
+成功返回 `200` 和统一 Session 响应。邮箱或密码错误统一返回
+`EMAIL_PASSWORD_INVALID`，不区分邮箱是否存在。连续失败 5 次后，该账号锁定 15 分钟。
+验证码免密登录接口在服务端保留，但 MVP App 不展示该入口。忘记密码和修改密码接口不在本次范围内。
+
 #### 统一登录响应
 
-Google、Apple、邮箱验证码成功后均返回：
+邮箱注册、密码登录以及后续启用的其他登录方式均返回：
 
 ```json
 {
@@ -458,6 +507,8 @@ Content-Type: application/json
 | 401 | `PROVIDER_TOKEN_INVALID` | Google/Apple凭据验证失败 |
 | 401 | `EMAIL_CODE_INVALID` | 邮箱验证码错误或已使用 |
 | 401 | `EMAIL_CODE_EXPIRED` | 邮箱验证码过期 |
+| 401 | `EMAIL_PASSWORD_INVALID` | 邮箱或密码错误 |
+| 409 | `EMAIL_ALREADY_REGISTERED` | 邮箱已设置密码，应直接登录 |
 | 503 | `EMAIL_DELIVERY_FAILED` | Resend 暂时无法发送验证码 |
 | 409 | `ACCOUNT_LINK_REQUIRED` | 相同邮箱已有其他登录方式 |
 | 409 | `HOUSEHOLD_REQUIRED` | 业务操作前尚未创建/加入家庭 |

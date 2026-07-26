@@ -15,6 +15,13 @@
       "when": 1784971654238,
       "tag": "0001_massive_the_professor",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785028061325,
+      "tag": "0002_open_titanium_man",
+      "breakpoints": true
     }
   ]
 }
