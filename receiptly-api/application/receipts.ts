@@ -1,3 +1,4 @@
+/** 文件职责：实现小票草稿、扫描、确认、核对、调整、查询和删除等核心用例。 */
 import {
   and, asc, eq, isNull,
 } from 'drizzle-orm';
@@ -118,6 +119,7 @@ const candidateDetail = async (receiptId: string): Promise<PersistedCandidateDet
   };
 };
 
+/** 创建一张属于指定家庭的手动小票草稿。 */
 export const createReceipt = async (actor: ReceiptlyActor, householdId: string, input: ReceiptInput) => {
   await requireMembership(actor, householdId);
   const [receipt] = await getReceiptlyDb().insert(receipts).values({
@@ -132,6 +134,10 @@ export const createReceipt = async (actor: ReceiptlyActor, householdId: string, 
   return receipt;
 };
 
+/**
+ * 将服务端 OCR 结果保存为待审核小票。
+ * 小票、商品行和扫描审计记录在同一事务中写入。
+ */
 export const createScannedReceipt = async (
   actor: ReceiptlyActor,
   householdId: string,
@@ -198,8 +204,8 @@ export const createScannedReceipt = async (
 };
 
 /**
- * Converts the non-persistent /receipts/scan candidate into a real household draft.
- * `clientDraftId` makes retrying safe when the mobile network disconnects after a write.
+ * 将 `/receipts/scan` 返回的非持久化候选数据转换为真实家庭草稿。
+ * `clientDraftId` 保证移动网络在写入后断开时可以安全重试。
  */
 export const persistScannedCandidate = async (
   actor: ReceiptlyActor,
@@ -272,8 +278,8 @@ export const persistScannedCandidate = async (
 };
 
 /**
- * Saves a user-reviewed scan as a confirmed receipt in one transaction.
- * This is used by the temporary mock-auth confirmation route.
+ * 在一个事务中将用户审核后的扫描结果保存为已确认小票。
+ * `clientDraftId` 让移动端重试时直接返回第一次写入的结果。
  */
 export const confirmScannedCandidate = async (
   actor: ReceiptlyActor,
@@ -313,6 +319,8 @@ export const confirmScannedCandidate = async (
     && candidate.purchasedOn !== null
     && candidate.declaredTotalCents !== null
   ) {
+    // 重复判断必须限定在家庭范围内；小票号可能跨门店或会计周期重复，
+    // 因此不能把它当作全局唯一标识。
     const [duplicate] = await db.select({ id: receipts.id }).from(receipts).where(and(
       eq(receipts.householdId, householdId),
       eq(receipts.status, 'confirmed'),
@@ -337,6 +345,8 @@ export const confirmScannedCandidate = async (
   const linesToSave = candidate.lines.filter((line) => (
     line.rawText !== null || line.productName !== null || line.linePriceCents !== null
   ));
+  // 小票头、商品行、确认快照和审计记录共同构成一次记账事件，
+  // 必须一起提交或一起回滚。
   const receiptId = await db.transaction(async (tx) => {
     const [receipt] = await tx.insert(receipts).values({
       householdId,
@@ -387,6 +397,7 @@ export const confirmScannedCandidate = async (
   return { created: true, detail: await candidateDetail(receiptId) };
 };
 
+/** 返回指定家庭中尚未软删除的小票列表。 */
 export const listReceipts = async (actor: ReceiptlyActor, householdId: string) => {
   await requireMembership(actor, householdId);
   return getReceiptlyDb()
@@ -396,11 +407,13 @@ export const listReceipts = async (actor: ReceiptlyActor, householdId: string) =
     .orderBy(asc(receipts.purchasedOn));
 };
 
+/** 在校验家庭成员权限后返回完整小票详情。 */
 export const getReceipt = async (actor: ReceiptlyActor, receiptId: string) => {
   await loadReceipt(receiptId, actor);
   return receiptDetail(receiptId);
 };
 
+/** 向可编辑小票追加商品行，并递增小票版本号。 */
 export const addReceiptLine = async (actor: ReceiptlyActor, receiptId: string, input: LineInput) => {
   const receipt = await loadReceipt(receiptId, actor);
   assertEditable(receipt.status);
@@ -429,6 +442,7 @@ export const addReceiptLine = async (actor: ReceiptlyActor, receiptId: string, i
   return line;
 };
 
+/** 向可编辑小票添加金额调整项，并递增小票版本号。 */
 export const addReceiptAdjustment = async (
   actor: ReceiptlyActor,
   receiptId: string,
@@ -451,6 +465,9 @@ export const addReceiptAdjustment = async (
   return adjustment;
 };
 
+/**
+ * 计算商品行、调整项与声明总额的差异，并生成阻止确认的原因列表。
+ */
 export const reconciliation = async (actor: ReceiptlyActor, receiptId: string) => {
   const receipt = await loadReceipt(receiptId, actor);
   const detail = await receiptDetail(receiptId);
@@ -483,6 +500,9 @@ export const reconciliation = async (actor: ReceiptlyActor, receiptId: string) =
   };
 };
 
+/**
+ * 使用乐观锁版本确认已平衡小票，并原子写入确认快照和审计记录。
+ */
 export const confirmReceipt = async (actor: ReceiptlyActor, receiptId: string, expectedVersion: number) => {
   const receipt = await loadReceipt(receiptId, actor);
   assertEditable(receipt.status);
@@ -499,6 +519,7 @@ export const confirmReceipt = async (actor: ReceiptlyActor, receiptId: string, e
 
   const db = getReceiptlyDb();
   return db.transaction(async (tx) => {
+    // 在 UPDATE 条件中再次校验版本，避免初次读取与确认写入之间的并发覆盖。
     const [updated] = await tx.update(receipts).set({
       status: 'confirmed', version: receipt.version + 1, updatedAt: new Date(),
     }).where(and(eq(receipts.id, receiptId), eq(receipts.version, expectedVersion))).returning();
@@ -518,6 +539,7 @@ export const confirmReceipt = async (actor: ReceiptlyActor, receiptId: string, e
   });
 };
 
+/** 软删除小票并保存删除前状态的审计记录。 */
 export const deleteReceipt = async (actor: ReceiptlyActor, receiptId: string) => {
   const receipt = await loadReceipt(receiptId, actor);
   const db = getReceiptlyDb();

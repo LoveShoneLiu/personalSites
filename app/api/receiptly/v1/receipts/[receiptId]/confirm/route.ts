@@ -1,3 +1,4 @@
+/** 文件职责：按乐观锁版本确认一张已审核且金额平衡的小票。 */
 import { NextRequest } from 'next/server';
 import { confirmReceipt } from '@/receiptly-api/application/receipts';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';

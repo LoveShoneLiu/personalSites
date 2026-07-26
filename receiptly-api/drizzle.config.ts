@@ -1,7 +1,8 @@
+/** 文件职责：限定 Receiptly Drizzle Schema、迁移目录和独立数据库连接。 */
 import { defineConfig } from 'drizzle-kit';
 import { loadEnvConfig } from '@next/env';
 
-// Drizzle runs outside the Next.js runtime, so load the same local environment files explicitly.
+// Drizzle 命令运行在 Next.js 运行时之外，因此需要显式加载同一套本地环境变量。
 loadEnvConfig(process.cwd());
 
 if (!process.env.RECEIPTLY_DATABASE_URL) {

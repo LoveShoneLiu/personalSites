@@ -1,3 +1,4 @@
+/** 文件职责：识别小票图片并返回不写数据库的审核候选数据。 */
 import { NextRequest } from 'next/server';
 import { ReceiptlyError, dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';
 import { ReceiptCandidateLine } from '@/receiptly-api/contracts/receipt-candidate';
@@ -6,6 +7,8 @@ import { requireActor } from '@/receiptly-api/infrastructure/auth/guard';
 
 export const runtime = 'nodejs';
 
+// 即使托管平台可能设置更低的传输上限，应用层仍需保留大小校验；
+// App 在生产环境发送 multipart 数据前，应先将图片压缩到平台限制以内。
 const maxImageBytes = 7 * 1024 * 1024;
 
 type UploadImage = File;
@@ -41,6 +44,10 @@ const responseLine = (line: ReceiptCandidateLine) => ({
   included: line.included,
 });
 
+/**
+ * 返回尚未持久化的审核候选数据。
+ * 只有经过认证的用户明确确认后，服务端才会写入家庭小票和商品行。
+ */
 export async function POST(request: NextRequest) {
   try {
     await requireActor(request);
@@ -61,7 +68,7 @@ export async function POST(request: NextRequest) {
       throw new ReceiptlyError(400, 'IMAGE_INVALID', 'image must be between 1 byte and 7 MB.');
     }
 
-    // The buffer only exists during this request. It is neither logged nor stored.
+    // 图片 Buffer 只存在于本次请求中，禁止记录日志或持久化。
     const bytes = new Uint8Array(await image.arrayBuffer());
     const recognition = await extractReceiptFromImage(bytes, image.type);
     return dataResponse({

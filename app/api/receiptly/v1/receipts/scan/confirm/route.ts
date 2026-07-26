@@ -1,3 +1,4 @@
+/** 文件职责：将用户审核后的非持久化扫描候选数据一次性确认入账。 */
 import { NextRequest } from 'next/server';
 import { confirmScannedCandidate } from '@/receiptly-api/application/receipts';
 import { readScannedCandidate } from '@/receiptly-api/contracts/candidate-payload';
@@ -15,8 +16,8 @@ const readScanId = (value: unknown) => {
 };
 
 /**
- * Send the reviewed `data.receipt` and `data.lines` from POST /receipts/scan.
- * The authenticated user's single active household is resolved on the server.
+ * 接收 `POST /receipts/scan` 返回并经用户审核的 `data.receipt` 与 `data.lines`。
+ * 服务端根据认证身份解析用户唯一的有效家庭。
  */
 export async function POST(request: NextRequest) {
   try {

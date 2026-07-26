@@ -1,3 +1,4 @@
+/** 文件职责：查询指定小票详情，或执行带审计记录的软删除。 */
 import { NextRequest } from 'next/server';
 import { deleteReceipt, getReceipt } from '@/receiptly-api/application/receipts';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';

@@ -1,3 +1,4 @@
+/** 文件职责：将 App 审核中的扫描候选数据导入为家庭小票草稿。 */
 import { NextRequest } from 'next/server';
 import { persistScannedCandidate } from '@/receiptly-api/application/receipts';
 import { readScannedCandidate } from '@/receiptly-api/contracts/candidate-payload';
@@ -16,7 +17,7 @@ const readClientDraftId = (value: unknown) => {
   return value;
 };
 
-/** Persists the candidate returned by the public OCR preview endpoint as a needs_review draft. */
+/** 将 OCR 预览接口返回的候选数据保存为 `needs_review` 草稿。 */
 export async function POST(request: NextRequest, context: Context) {
   try {
     const actor = await requireActor(request);

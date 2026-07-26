@@ -1,3 +1,4 @@
+/** 文件职责：计算小票商品、调整项与声明总额之间的核对结果。 */
 import { NextRequest } from 'next/server';
 import { reconciliation } from '@/receiptly-api/application/receipts';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';

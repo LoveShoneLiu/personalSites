@@ -1,3 +1,4 @@
+/** 文件职责：签发和验证 Access Token，并生成、Hash 不透明登录凭据。 */
 import { createHmac, randomBytes } from 'crypto';
 import {
   errors as joseErrors,
@@ -28,6 +29,10 @@ const secret = () => {
 
 const signingKey = () => new TextEncoder().encode(secret());
 
+/**
+ * 签发绑定到服务端会话的短期 Access Token。
+ * Token 中的 Session ID 允许登出在 JWT 到期前立即使其失效，无需维护独立黑名单。
+ */
 export const createAccessToken = async (userId: string, sessionId: string) => new SignJWT({
   sid: sessionId,
   typ: 'access',
@@ -41,6 +46,10 @@ export const createAccessToken = async (userId: string, sessionId: string) => ne
   .setExpirationTime('15m')
   .sign(signingKey());
 
+/**
+ * 校验 JWT 签名以及 Receiptly 要求的 Claims 结构。
+ * 当前账号和会话状态由 `requireActor` 继续通过数据库校验。
+ */
 export const verifyAccessToken = async (token: string): Promise<AccessTokenPayload> => {
   try {
     const { payload } = await jwtVerify(token, signingKey(), {
@@ -68,8 +77,11 @@ export const verifyAccessToken = async (token: string): Promise<AccessTokenPaylo
   }
 };
 
+/** 创建高熵、不透明的 Refresh Token；数据库只保存其 HMAC。 */
 export const createRefreshToken = () => randomBytes(48).toString('base64url');
 
+/** 为 Refresh Token 生成不可逆的数据库查询值。 */
 export const hashToken = (token: string) => createHmac('sha256', secret()).update(token).digest('hex');
 
+/** 为 OAuth state、邮箱验证码等短期登录数据生成 Hash。 */
 export const hashLoginSecret = (value: string) => createHmac('sha256', secret()).update(value).digest('hex');

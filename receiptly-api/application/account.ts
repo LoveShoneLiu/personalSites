@@ -1,3 +1,4 @@
+/** 文件职责：实现当前账号查询、家庭创建及满足合规约束的账号删除用例。 */
 import {
   and, count, eq, inArray, isNull, ne,
 } from 'drizzle-orm';
@@ -15,6 +16,7 @@ import {
 import { decryptProviderToken } from '@/receiptly-api/infrastructure/auth/provider-credentials';
 import { revokeAppleToken } from '@/receiptly-api/infrastructure/auth/providers';
 
+/** 返回当前用户、家庭列表、活动家庭及 Onboarding 状态。 */
 export const getCurrentAccount = async (actor: ReceiptlyActor) => {
   const db = getReceiptlyDb();
   const userHouseholds = await db.select({
@@ -46,6 +48,10 @@ export const getCurrentAccount = async (actor: ReceiptlyActor) => {
   };
 };
 
+/**
+ * 在同一事务中创建家庭及其 Owner 成员关系。
+ * Owner 必须来自服务端认证身份，不能信任客户端提交的用户信息。
+ */
 export const createHouseholdForUser = async (
   actor: ReceiptlyActor,
   input: { name: string; timezone: string; currency: string },
@@ -85,6 +91,10 @@ export const createHouseholdForUser = async (
   };
 };
 
+/**
+ * 删除当前账号。
+ * 有其他成员的 Owner 必须先转移所有权；单人家庭随账号一起删除。
+ */
 export const deleteCurrentAccount = async (actor: ReceiptlyActor) => {
   const db = getReceiptlyDb();
   const owned = await db.select({ id: households.id }).from(households).where(and(
@@ -101,6 +111,8 @@ export const deleteCurrentAccount = async (actor: ReceiptlyActor) => {
   }));
   const blockedHousehold = householdMemberCounts.find(({ count: memberCount }) => memberCount > 0);
   if (blockedHousehold) {
+    // 账号删除不能让家庭失去 Owner，也不能由服务端隐式选择继任者；
+    // 所有权转移必须由独立的、经过认证的流程完成。
     throw new ReceiptlyError(
       409,
       'OWNER_TRANSFER_REQUIRED',
@@ -125,6 +137,8 @@ export const deleteCurrentAccount = async (actor: ReceiptlyActor) => {
     decryptProviderToken(credential.encryptedRefreshToken),
   )));
 
+  // 删除单人家庭、撤销全部会话和匿名化账号必须作为一个数据库事务完成，
+  // 避免部分删除后仍残留有效访问权限。
   await db.transaction(async (tx) => {
     const ownedHouseholdIds = owned.map(({ id }) => id);
     if (ownedHouseholdIds.length > 0) {

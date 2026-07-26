@@ -1,3 +1,4 @@
+/** 文件职责：查询家庭首页的已确认支出汇总与稳定游标分页明细。 */
 import {
   and, count, desc, eq, gte, ilike, isNotNull, isNull, lte, or, sql, lt,
 } from 'drizzle-orm';
@@ -17,6 +18,7 @@ type HomeExpenseFilters = {
 
 type HomeCursor = { purchasedOn: string; createdAt: string; id: string };
 
+// 游标只要求对客户端不透明，并不承担保密作用；先校验格式，避免异常值进入时间和 ID 条件。
 const encodeCursor = (cursor: HomeCursor) => Buffer.from(JSON.stringify(cursor)).toString('base64url');
 
 const decodeCursor = (value: string): HomeCursor => {
@@ -34,6 +36,10 @@ const decodeCursor = (value: string): HomeCursor => {
   }
 };
 
+/**
+ * 查询家庭首页支出。
+ * 只统计已确认且未删除的商品行，并使用购买日期、创建时间和 ID 构成稳定游标。
+ */
 export const listHomeExpenses = async (
   actor: ReceiptlyActor,
   householdId: string,
@@ -41,6 +47,7 @@ export const listHomeExpenses = async (
 ) => {
   await requireMembership(actor, householdId);
   const db = getReceiptlyDb();
+  // 汇总条件故意不包含游标，保证每一页返回的都是完整筛选结果汇总。
   const summaryWhere = [
     eq(receipts.householdId, householdId),
     eq(receipts.status, 'confirmed'),
@@ -58,6 +65,8 @@ export const listHomeExpenses = async (
   const pageWhere = [...summaryWhere];
   if (filters.cursor) {
     const cursor = decodeCursor(filters.cursor);
+    // 保留 PostgreSQL 时间戳精度；经过 JavaScript Date 会丢失微秒，
+    // 从而在翻页边界造成记录遗漏或重复。
     pageWhere.push(or(
       lt(receipts.purchasedOn, cursor.purchasedOn),
       and(
@@ -97,6 +106,7 @@ export const listHomeExpenses = async (
   const visibleRows = rows.slice(0, filters.limit);
   const last = visibleRows.at(-1);
 
+  // 多查询一条记录即可判断 `hasMore`，无需额外统计分页子集。
   const [summary] = await db
     .select({
       lineCount: count(receiptLines.id),

@@ -1,3 +1,4 @@
+/** 文件职责：为本地开发创建固定 Mock 用户、家庭及成员关系。 */
 import {
   getReceiptlyDb,
   householdMembers,
@@ -6,7 +7,7 @@ import {
 } from '@/receiptly-api/infrastructure/database/client';
 import { ReceiptlyActor } from './guard';
 
-// Temporary development identity. It is deliberately isolated from the real token flow.
+// 仅用于本地开发的固定身份，必须与真实 Token 流程完全隔离。
 const mockUserId = '00000000-0000-4000-8000-000000000001';
 const mockHouseholdId = '00000000-0000-4000-8000-000000000002';
 
@@ -17,6 +18,7 @@ const mockActor: ReceiptlyActor = {
   displayName: 'Receiptly Demo User',
 };
 
+/** 幂等创建并返回本地开发专用的 Mock 用户和家庭。 */
 export const getMockReceiptlySession = async () => {
   const db = getReceiptlyDb();
   await db.transaction(async (tx) => {

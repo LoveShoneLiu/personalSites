@@ -1,3 +1,4 @@
+/** 文件职责：撤销当前 Bearer Token 对应的服务端会话。 */
 import { NextRequest } from 'next/server';
 import { logoutSession } from '@/receiptly-api/application/auth';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';

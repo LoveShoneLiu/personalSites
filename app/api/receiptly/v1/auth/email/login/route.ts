@@ -1,3 +1,4 @@
+/** 文件职责：处理邮箱密码登录并返回统一的 Receiptly 会话。 */
 import { NextRequest } from 'next/server';
 import { loginWithEmailPassword } from '@/receiptly-api/application/auth';
 import {

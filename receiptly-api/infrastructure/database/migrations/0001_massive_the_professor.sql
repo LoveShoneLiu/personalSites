@@ -1,3 +1,4 @@
+-- 文件职责：扩展统一认证模型，增加登录身份、挑战、验证码和可轮换会话结构。
 CREATE TYPE "public"."receiptly_auth_platform" AS ENUM('ios', 'android', 'web');--> statement-breakpoint
 CREATE TYPE "public"."receiptly_auth_provider" AS ENUM('google', 'apple', 'email');--> statement-breakpoint
 CREATE TYPE "public"."receiptly_user_status" AS ENUM('active', 'deletion_pending', 'deleted');--> statement-breakpoint

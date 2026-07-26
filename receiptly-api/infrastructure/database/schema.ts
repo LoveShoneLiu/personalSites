@@ -1,3 +1,4 @@
+/** 文件职责：声明 Receiptly 认证、家庭、小票、商品及审计相关数据库 Schema。 */
 import {
   boolean,
   date,
@@ -204,7 +205,7 @@ export const receipts = pgTable('receiptly_receipts', {
   creatorId: uuid('creator_id').notNull().references(() => receiptlyUsers.id),
   status: receiptStatus('status').notNull().default('draft'),
   entryMode: receiptEntryMode('entry_mode').notNull().default('manual'),
-  // Client-generated UUID. Repeating it must return the same draft, never add a duplicate receipt.
+  // 客户端生成的 UUID；重复提交必须返回同一草稿，不能创建重复小票。
   clientDraftId: uuid('client_draft_id'),
   storeId: uuid('store_id').references(() => receiptlyStores.id),
   storeName: varchar('store_name', { length: 160 }),
@@ -255,7 +256,7 @@ export const receiptLines = pgTable('receiptly_receipt_lines', {
   index('receiptly_receipt_lines_product_lookup_idx').on(table.householdId, table.productId, table.status),
 ]);
 
-// No original image or OCR full text is stored here. This only supports retries/audit metadata.
+// 此处不保存原图或完整 OCR 文本，只记录重试与审计所需元数据。
 export const receiptlyExtractionRuns = pgTable('receiptly_extraction_runs', {
   id: id(),
   householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),

@@ -1,3 +1,4 @@
+/** 文件职责：轮换 Refresh Token 并签发新的会话凭据。 */
 import { NextRequest } from 'next/server';
 import { refreshSession } from '@/receiptly-api/application/auth';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';

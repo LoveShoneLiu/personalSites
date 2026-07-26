@@ -1,3 +1,4 @@
+/** 文件职责：提供指定家庭的小票列表查询与手动草稿创建接口。 */
 import { NextRequest } from 'next/server';
 import { createReceipt, listReceipts } from '@/receiptly-api/application/receipts';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';

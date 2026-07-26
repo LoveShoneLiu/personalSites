@@ -1,3 +1,4 @@
+-- 文件职责：创建 Receiptly 小票、家庭、商品、会话和审计模块的初始表结构。
 CREATE TYPE "public"."receiptly_adjustment_type" AS ENUM('discount', 'refund', 'tax', 'non_item_fee', 'other');--> statement-breakpoint
 CREATE TYPE "public"."receiptly_extraction_run_status" AS ENUM('processing', 'succeeded', 'failed');--> statement-breakpoint
 CREATE TYPE "public"."receiptly_household_role" AS ENUM('owner', 'member');--> statement-breakpoint

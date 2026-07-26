@@ -1,3 +1,4 @@
+/** 文件职责：提供 Route Handler 共用的基础对象、字符串、整数和日期校验器。 */
 import { ReceiptlyError } from './errors';
 
 export const readObject = (value: unknown): Record<string, unknown> => {

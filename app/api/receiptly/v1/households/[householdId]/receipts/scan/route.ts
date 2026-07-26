@@ -1,3 +1,4 @@
+/** 文件职责：识别图片并直接在指定家庭中创建待审核小票。 */
 import { NextRequest } from 'next/server';
 import { createScannedReceipt } from '@/receiptly-api/application/receipts';
 import { ReceiptlyError, dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest, context: Context) {
       throw new ReceiptlyError(400, 'IMAGE_INVALID', 'image must be between 1 byte and 7 MB.');
     }
 
-    // The buffer exists only for this request. Do not persist or log it.
+    // 图片 Buffer 只存在于本次请求中，禁止持久化或记录日志。
     const bytes = new Uint8Array(await image.arrayBuffer());
     const recognition = await extractReceiptFromImage(bytes, image.type);
     const receipt = await createScannedReceipt(actor, householdId, recognition.extraction, recognition.model);

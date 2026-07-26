@@ -1,3 +1,4 @@
+/** 文件职责：仅在开发环境提供固定 Mock 用户与家庭上下文。 */
 import {
   dataResponse,
   errorResponse,
@@ -7,7 +8,7 @@ import { getMockReceiptlySession } from '@/receiptly-api/infrastructure/auth/moc
 
 export const runtime = 'nodejs';
 
-/** Temporary development login. Remove this route when real mobile authentication is enabled. */
+/** 仅用于本地开发的临时登录入口；启用真实移动端认证后应删除。 */
 export async function GET() {
   try {
     if (process.env.NODE_ENV !== 'development') {

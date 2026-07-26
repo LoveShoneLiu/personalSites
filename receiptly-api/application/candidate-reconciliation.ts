@@ -1,5 +1,10 @@
+/** 文件职责：核对扫描候选商品金额，给出是否允许确认入账的确定性结果。 */
 import { CandidateReconciliation, ReceiptCandidate } from '@/receiptly-api/contracts/receipt-candidate';
 
+/**
+ * 生成扫描入库和审核界面共用的确定性确认结果。
+ * 所有金额始终使用最小货币单位整数，避免浮点误差。
+ */
 export const reconcileCandidate = (receipt: ReceiptCandidate): CandidateReconciliation => {
   const includedLines = receipt.lines.filter((line) => line.included);
   const blockingReasons: string[] = [];

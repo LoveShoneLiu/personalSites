@@ -1,3 +1,4 @@
+/** 文件职责：实现第三方登录、邮箱认证、密码登录及会话生命周期管理。 */
 import { randomInt } from 'crypto';
 import { compare, hash } from 'bcryptjs';
 import {
@@ -51,6 +52,8 @@ const EMAIL_MAX_SENDS_PER_HOUR = 5;
 const PASSWORD_HASH_ROUNDS = 12;
 const PASSWORD_MAX_FAILED_ATTEMPTS = 5;
 const PASSWORD_LOCK_MS = 15 * 60 * 1000;
+// 对不存在的账号也执行有效 bcrypt Hash 比对，使计算耗时接近真实账号，
+// 降低通过响应时序判断账号是否存在的风险。
 const DUMMY_PASSWORD_HASH = '$2a$12$AK34kVZ6G8ngtozKoFDPYOf1Q48z72If2mYSuW.oUHHaJuceRpjUW';
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
@@ -114,6 +117,10 @@ const createSession = async (
   return { id: session.id, refreshToken };
 };
 
+/**
+ * 创建一次性 OAuth 登录尝试，将 Provider、state 和 nonce 绑定到短期服务端记录。
+ * 数据库只保存 state 的 HMAC。
+ */
 export const createLoginChallenge = async (provider: Exclude<AuthProvider, 'email'>) => {
   const rawNonce = createRefreshToken();
   const state = createRefreshToken();
@@ -209,6 +216,8 @@ const findOrCreateIdentity = async (
   }
 
   if (provider !== 'email' && identity.email) {
+    // 邮箱相同不能证明两个 Provider 身份属于同一个人；
+    // 账号关联必须由已登录用户明确发起。
     const methods = await existingMethodsForEmail(identity.email);
     if (methods.length > 0) {
       throw new ReceiptlyError(409, 'ACCOUNT_LINK_REQUIRED', '该邮箱已关联其他登录方式，请先使用原方式登录。', {
@@ -288,6 +297,7 @@ const completeLogin = async (
   };
 };
 
+/** 验证一次性挑战和 Google 身份后，创建或恢复统一账号会话。 */
 export const loginWithGoogle = async (input: {
   attemptId: string;
   state: string;
@@ -300,6 +310,10 @@ export const loginWithGoogle = async (input: {
   return (await completeLogin('google', identity, null, input.device)).response;
 };
 
+/**
+ * 验证 Apple 身份与授权码，并加密保存后续撤销授权所需的 Refresh Token。
+ * Apple 姓名可能只在首次授权时返回，因此资料会在首次登录阶段保存。
+ */
 export const loginWithApple = async (input: {
   attemptId: string;
   state: string;
@@ -340,6 +354,10 @@ const resendClient = () => {
   return new Resend(apiKey);
 };
 
+/**
+ * 创建并发送一次性邮箱验证码。
+ * 同一邮箱受小时配额和重发间隔限制，数据库只保存验证码 Hash。
+ */
 export const requestEmailCode = async (emailInput: string, locale: string) => {
   const email = normalizeEmail(emailInput);
   const from = process.env.RECEIPTLY_EMAIL_FROM;
@@ -366,6 +384,7 @@ export const requestEmailCode = async (emailInput: string, locale: string) => {
 
   const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
   const codeId = crypto.randomUUID();
+  // 将 Hash 与记录 ID、标准化邮箱绑定，避免验证码在另一条记录上被重放。
   await db.insert(receiptlyEmailLoginCodes).values({
     id: codeId,
     email,
@@ -388,6 +407,7 @@ export const requestEmailCode = async (emailInput: string, locale: string) => {
     });
     if (error) throw new Error(error.message);
   } catch {
+    // 邮件发送失败后立即消费该记录，避免未送达验证码继续有效并干扰后续重发。
     await db.update(receiptlyEmailLoginCodes).set({ consumedAt: new Date() }).where(
       eq(receiptlyEmailLoginCodes.id, codeId),
     );
@@ -427,6 +447,7 @@ const consumeEmailCode = async (email: string, code: string) => {
   if (!consumed) throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', '验证码已使用。');
 };
 
+/** 消费一次性邮箱验证码，并创建或恢复兼容的无密码邮箱会话。 */
 export const verifyEmailCode = async (emailInput: string, code: string, device: AuthDevice) => {
   const email = normalizeEmail(emailInput);
   await consumeEmailCode(email, code);
@@ -434,12 +455,16 @@ export const verifyEmailCode = async (emailInput: string, code: string, device: 
     subject: email,
     email,
     emailVerified: true,
-    // Email MVP has no separate profile screen. Use the local part as an editable initial name
-    // so a new user proceeds directly to household onboarding.
+    // 邮箱 MVP 没有独立资料页，先使用邮箱本地部分作为可编辑昵称，
+    // 让新用户直接进入家庭创建流程。
     displayName: email.split('@')[0],
   }, null, device)).response;
 };
 
+/**
+ * 使用已验证邮箱注册密码账号。
+ * 支持为旧版无密码邮箱账号补充密码，但不会自动合并第三方登录身份。
+ */
 export const registerWithEmailPassword = async (input: {
   email: string;
   password: string;
@@ -487,6 +512,7 @@ export const registerWithEmailPassword = async (input: {
   const passwordHash = await hash(input.password, PASSWORD_HASH_ROUNDS);
   await consumeEmailCode(email, input.code);
   const displayName = input.displayName ?? email.split('@')[0];
+  // 用户与身份记录必须原子写入，避免出现已保存密码但没有可用登录身份的账号。
   const result = await db.transaction(async (tx) => {
     if (existingUser && existingEmailIdentityId) {
       const [user] = await tx.update(receiptlyUsers).set({
@@ -537,6 +563,10 @@ export const registerWithEmailPassword = async (input: {
   return sessionResponse(result, session, result.isNewUser);
 };
 
+/**
+ * 使用邮箱和密码登录。
+ * 失败次数按账号累计并触发临时锁定，未知账号也执行等价 bcrypt 比对。
+ */
 export const loginWithEmailPassword = async (
   emailInput: string,
   password: string,
@@ -600,6 +630,10 @@ export const loginWithEmailPassword = async (
   return sessionResponse(account, session, false);
 };
 
+/**
+ * 轮换 Refresh Token，并把新会话限制在原安装设备。
+ * 检测到旧 Token 重放时撤销整个 Token Family。
+ */
 export const refreshSession = async (refreshToken: string, installationId: string) => {
   const db = getReceiptlyDb();
   const [current] = await db.select().from(receiptlySessions).where(
@@ -609,6 +643,8 @@ export const refreshSession = async (refreshToken: string, installationId: strin
     throw new ReceiptlyError(401, 'REFRESH_TOKEN_INVALID', 'Refresh token无效或已过期。');
   }
   if (current.revokedAt) {
+    // 已轮换 Token 再次出现，可能意味着泄露或客户端状态失步；
+    // 此时撤销整个 Token Family，不能信任任意一份副本。
     await db.update(receiptlySessions).set({
       revokedAt: new Date(),
       revokeReason: 'refresh_token_reuse',
@@ -617,6 +653,7 @@ export const refreshSession = async (refreshToken: string, installationId: strin
   }
 
   const nextRefreshToken = createRefreshToken();
+  // Token 轮换在事务中完成，确保并发请求中只有一个能撤销当前会话并创建后继会话。
   const result = await db.transaction(async (tx) => {
     const [revoked] = await tx.update(receiptlySessions).set({
       revokedAt: new Date(),
@@ -648,6 +685,7 @@ export const refreshSession = async (refreshToken: string, installationId: strin
   };
 };
 
+/** 撤销当前服务端会话，使其关联的 Access Token 随即失效。 */
 export const logoutSession = async (sessionId: string) => {
   await getReceiptlyDb().update(receiptlySessions).set({
     revokedAt: new Date(),

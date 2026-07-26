@@ -1,3 +1,4 @@
+/** 文件职责：校验首页筛选参数，并返回家庭已确认支出的游标分页数据。 */
 import { NextRequest } from 'next/server';
 import { listHomeExpenses } from '@/receiptly-api/application/home-expenses';
 import { dataResponse, errorResponse, ReceiptlyError } from '@/receiptly-api/contracts/errors';
@@ -30,7 +31,7 @@ const readLimit = (value: string | null) => {
   return limit;
 };
 
-/** Returns confirmed line items only; drafts and needs_review receipts are never included. */
+/** 只返回已确认的商品行；草稿和待审核小票不会进入首页支出数据。 */
 export async function GET(request: NextRequest, context: Context) {
   try {
     const actor = await requireActor(request);

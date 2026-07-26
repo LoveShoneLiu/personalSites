@@ -1,3 +1,4 @@
+/** 文件职责：定义稳定错误码，并生成 Receiptly 统一成功或失败响应结构。 */
 import { NextResponse } from 'next/server';
 
 export type ReceiptlyErrorCode =
@@ -35,6 +36,10 @@ export type ReceiptlyErrorCode =
   | 'CONFIGURATION_ERROR'
   | 'INTERNAL_ERROR';
 
+/**
+ * 表示可以安全暴露消息和元数据的预期 API 错误。
+ * 非预期异常必须交由 `errorResponse` 处理，防止内部细节或凭据泄露给移动端。
+ */
 export class ReceiptlyError extends Error {
   status: number;
 
@@ -55,6 +60,12 @@ export class ReceiptlyError extends Error {
   }
 }
 
+/**
+ * 将异常转换为 Receiptly 稳定的统一响应结构。
+ *
+ * `status` 与 HTTP 错误状态保持一致以兼容客户端；
+ * `error.code` 是客户端分支处理使用的稳定机器可读值。
+ */
 export const errorResponse = (error: unknown) => {
   const requestId = crypto.randomUUID();
   if (error instanceof ReceiptlyError) {
@@ -74,7 +85,7 @@ export const errorResponse = (error: unknown) => {
     );
   }
 
-  // Log only technical metadata. Request bodies, tokens, and receipt content stay out of logs.
+  // 只记录技术元数据；请求体、Token 和小票内容禁止进入日志。
   // eslint-disable-next-line no-console
   console.error('Unexpected Receiptly API error.', {
     requestId,
@@ -96,6 +107,7 @@ export const errorResponse = (error: unknown) => {
   );
 };
 
+/** 使用 Receiptly 统一响应结构返回成功数据。 */
 export const dataResponse = <T>(data: T, status = 200) => NextResponse.json(
   {
     status: 0,

@@ -1,3 +1,4 @@
+/** 文件职责：接收并校验 Apple 登录凭据，返回统一的 Receiptly 会话。 */
 import { NextRequest } from 'next/server';
 import { loginWithApple } from '@/receiptly-api/application/auth';
 import {

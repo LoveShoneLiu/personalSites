@@ -1,3 +1,4 @@
+/** 文件职责：申请邮箱验证码，并触发 Resend 邮件发送。 */
 import { NextRequest } from 'next/server';
 import { requestEmailCode } from '@/receiptly-api/application/auth';
 import { requiredEmail } from '@/receiptly-api/contracts/auth-payload';

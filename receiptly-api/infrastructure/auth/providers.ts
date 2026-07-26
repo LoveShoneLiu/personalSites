@@ -1,3 +1,4 @@
+/** 文件职责：验证 Google/Apple 身份，并处理 Apple Token 交换与撤销。 */
 import { createHash } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import {
@@ -20,6 +21,10 @@ const googleAudiences = () => (process.env.RECEIPTLY_GOOGLE_AUDIENCES ?? '')
   .map((value) => value.trim())
   .filter(Boolean);
 
+/**
+ * 在服务端验证 Google ID Token，并使用 `sub` 作为稳定身份标识。
+ * 邮箱只属于资料信息，且仅在 Google 标记为已验证时才接收。
+ */
 export const verifyGoogleIdentity = async (idToken: string): Promise<ProviderIdentity> => {
   const audiences = googleAudiences();
   if (audiences.length === 0) {
@@ -53,6 +58,10 @@ const appleClientId = () => {
   return value;
 };
 
+/**
+ * 验证 Apple Identity Token，以及由 Receiptly 原始挑战计算出的 SHA-256 nonce，
+ * 防止 Token 在不同登录尝试之间被重放。
+ */
 export const verifyAppleIdentity = async (
   identityToken: string,
   rawNonce: string,
@@ -98,6 +107,7 @@ const appleClientSecret = async () => {
     .sign(key);
 };
 
+/** 使用 Apple 授权码换取仅由服务端保存的 Refresh Token。 */
 export const exchangeAppleAuthorizationCode = async (authorizationCode: string) => {
   const response = await fetch('https://appleid.apple.com/auth/token', {
     method: 'POST',
@@ -116,6 +126,7 @@ export const exchangeAppleAuthorizationCode = async (authorizationCode: string) 
   return payload.refresh_token;
 };
 
+/** 在删除账号时调用 Apple 撤销接口，终止 Receiptly 的第三方授权。 */
 export const revokeAppleToken = async (refreshToken: string) => {
   const response = await fetch('https://appleid.apple.com/auth/revoke', {
     method: 'POST',

@@ -1,3 +1,4 @@
+/** 文件职责：验证一次性邮箱验证码，并创建或登录兼容账号。 */
 import { NextRequest } from 'next/server';
 import { verifyEmailCode } from '@/receiptly-api/application/auth';
 import { readAuthDevice, requiredEmail } from '@/receiptly-api/contracts/auth-payload';

@@ -1,3 +1,4 @@
+/** 文件职责：在开发环境中幂等地把测试邮箱账号关联到固定 Mock 家庭。 */
 import { loadEnvConfig } from '@next/env';
 import { neon } from '@neondatabase/serverless';
 

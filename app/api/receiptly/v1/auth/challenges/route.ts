@@ -1,3 +1,4 @@
+/** 文件职责：为 Google 或 Apple 登录签发一次性的 state 与 nonce 挑战。 */
 import { NextRequest } from 'next/server';
 import { createLoginChallenge } from '@/receiptly-api/application/auth';
 import { dataResponse, errorResponse, ReceiptlyError } from '@/receiptly-api/contracts/errors';

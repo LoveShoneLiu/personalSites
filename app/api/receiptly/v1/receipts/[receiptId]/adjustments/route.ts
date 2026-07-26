@@ -1,3 +1,4 @@
+/** 文件职责：为可编辑小票添加折扣、退款、税费等金额调整项。 */
 import { NextRequest } from 'next/server';
 import { addReceiptAdjustment } from '@/receiptly-api/application/receipts';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';

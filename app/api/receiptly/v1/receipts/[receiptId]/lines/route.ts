@@ -1,3 +1,4 @@
+/** 文件职责：向可编辑小票追加一条经过校验的商品明细。 */
 import { NextRequest } from 'next/server';
 import { addReceiptLine } from '@/receiptly-api/application/receipts';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';

@@ -1,3 +1,4 @@
+/** 文件职责：定义认证设备、家庭、用户会话及 Onboarding 状态的数据契约。 */
 export type AuthPlatform = 'ios' | 'android' | 'web';
 export type AuthProvider = 'google' | 'apple' | 'email';
 

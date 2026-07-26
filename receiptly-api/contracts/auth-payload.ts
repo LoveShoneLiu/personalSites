@@ -1,3 +1,4 @@
+/** 文件职责：校验认证接口的邮箱、密码、UUID、设备和资料字段。 */
 import { AuthDevice } from './auth';
 import { ReceiptlyError } from './errors';
 import { readObject, requiredString } from './validation';
@@ -21,6 +22,10 @@ export const requiredEmail = (value: unknown, field = 'email') => {
   return result;
 };
 
+/**
+ * 执行 bcrypt 的 72 字节输入上限，而不仅是字符数限制。
+ * 多字节 Unicode 密码的每个字符可能占用多个字节。
+ */
 export const requiredPassword = (value: unknown, field = 'password') => {
   if (
     typeof value !== 'string'
@@ -37,6 +42,10 @@ export const requiredPassword = (value: unknown, field = 'password') => {
   return value;
 };
 
+/**
+ * 校验用于绑定及轮换 Refresh Token 会话的稳定 App 安装 ID。
+ * 用户可编辑的设备名称只作为元数据。
+ */
 export const readAuthDevice = (value: unknown): AuthDevice => {
   const device = readObject(value);
   const platform = requiredString(device.platform, 'device.platform', 16);

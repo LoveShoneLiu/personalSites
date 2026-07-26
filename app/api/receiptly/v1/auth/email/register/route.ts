@@ -1,3 +1,4 @@
+/** 文件职责：校验邮箱验证码并创建邮箱密码账号及初始会话。 */
 import { NextRequest } from 'next/server';
 import { registerWithEmailPassword } from '@/receiptly-api/application/auth';
 import {

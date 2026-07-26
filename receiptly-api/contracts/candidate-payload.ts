@@ -1,3 +1,4 @@
+/** 文件职责：将 App 提交的扫描审核结果重新校验并转换为内部候选契约。 */
 import { normalizeReceiptQuantity } from '@/receiptly-api/domain/quantity';
 import { ReceiptCandidate } from './receipt-candidate';
 import { ReceiptlyError } from './errors';
@@ -19,6 +20,10 @@ const nullableInteger = (value: unknown, field: string) => {
   return value as number;
 };
 
+/**
+ * 在 API 信任边界重新校验由 App 编辑过的 OCR 候选数据。
+ * 客户端可以修改所有审核字段，因此不能只依赖此前的模型输出 Schema。
+ */
 export const readScannedCandidate = (value: unknown): ReceiptCandidate => {
   const body = readObject(value);
   const receipt = readObject(body.receipt);

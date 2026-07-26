@@ -1,3 +1,4 @@
+/** 文件职责：调用 OpenRouter 视觉模型，并把不可信模型输出转换为小票候选数据。 */
 import { ReceiptlyError } from '@/receiptly-api/contracts/errors';
 import { ReceiptCandidate, ReceiptCandidateLine } from '@/receiptly-api/contracts/receipt-candidate';
 import { normalizeReceiptQuantity } from '@/receiptly-api/domain/quantity';
@@ -17,6 +18,8 @@ type RawExtraction = Omit<ReceiptExtraction, 'lines'> & {
   lines: RawExtractionLine[];
 };
 
+// Provider 侧的 Schema 约束只能提高一致性；外部模型输出仍属于不可信输入，
+// 服务端必须继续执行运行时校验。
 const extractionSchema = {
   name: 'receipt_extraction',
   strict: true,
@@ -120,6 +123,7 @@ const isRawExtraction = (value: unknown): value is RawExtraction => {
 
 const candidateLine = (line: RawExtractionLine, sortOrder: number): ReceiptCandidateLine => {
   const numericQuantity = line.quantity === null ? null : Number(line.quantity);
+  // 当模型把行总价重复识别成单价时，使用数量和行总价反推可以纠正该结果。
   const calculatedUnitPrice = numericQuantity && numericQuantity > 0 && line.linePriceCents !== null
     ? Math.round(line.linePriceCents / numericQuantity)
     : line.unitPriceCents;
@@ -157,6 +161,10 @@ const candidateFromRawExtraction = (raw: RawExtraction): ReceiptExtraction => {
   };
 };
 
+/**
+ * 将一张小票图片转换为内部审核候选数据。
+ * 原始图片和完整 OCR 文本仅存在于本次请求中，本集成不会持久化这些内容。
+ */
 export const extractReceiptFromImage = async (
   image: Uint8Array,
   mimeType: 'image/jpeg' | 'image/png',

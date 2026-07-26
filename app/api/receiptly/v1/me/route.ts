@@ -1,3 +1,4 @@
+/** 文件职责：查询当前账号上下文，或执行符合所有权约束的账号删除。 */
 import { NextRequest } from 'next/server';
 import { deleteCurrentAccount, getCurrentAccount } from '@/receiptly-api/application/account';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';

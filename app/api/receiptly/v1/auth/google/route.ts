@@ -1,3 +1,4 @@
+/** 文件职责：接收并校验 Google ID Token，返回统一的 Receiptly 会话。 */
 import { NextRequest } from 'next/server';
 import { loginWithGoogle } from '@/receiptly-api/application/auth';
 import { readAuthDevice, requiredUuid } from '@/receiptly-api/contracts/auth-payload';

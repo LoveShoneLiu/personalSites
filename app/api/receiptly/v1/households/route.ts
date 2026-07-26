@@ -1,3 +1,4 @@
+/** 文件职责：为当前认证用户创建其首个家庭及 Owner 成员关系。 */
 import { NextRequest } from 'next/server';
 import { createHouseholdForUser } from '@/receiptly-api/application/account';
 import { dataResponse, errorResponse, ReceiptlyError } from '@/receiptly-api/contracts/errors';
