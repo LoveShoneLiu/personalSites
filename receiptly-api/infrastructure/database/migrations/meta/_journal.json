@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1784845943718,
+      "tag": "0000_real_lady_vermin",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784971654238,
+      "tag": "0001_massive_the_professor",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1785028061325,
+      "tag": "0002_open_titanium_man",
+      "breakpoints": true
+    }
+  ]
+}
