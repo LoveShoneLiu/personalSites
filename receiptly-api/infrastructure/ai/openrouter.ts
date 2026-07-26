@@ -1,5 +1,7 @@
 import { ReceiptlyError } from '@/receiptly-api/contracts/errors';
 import { ReceiptCandidate, ReceiptCandidateLine } from '@/receiptly-api/contracts/receipt-candidate';
+import { normalizeReceiptQuantity } from '@/receiptly-api/domain/quantity';
+import { resolveDeclaredTotalCents } from './receipt-total';
 
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 const defaultModel = 'qwen/qwen3-vl-32b-instruct';
@@ -8,7 +10,12 @@ export type ReceiptExtraction = ReceiptCandidate;
 
 type RawExtractionLine = Omit<ReceiptCandidateLine, 'sortOrder' | 'source' | 'included'>;
 
-type RawExtraction = Omit<ReceiptExtraction, 'lines'> & { lines: RawExtractionLine[] };
+type RawExtraction = Omit<ReceiptExtraction, 'lines'> & {
+  subtotalExcludingTaxCents: number | null;
+  taxCents: number | null;
+  amountPaidCents: number | null;
+  lines: RawExtractionLine[];
+};
 
 const extractionSchema = {
   name: 'receipt_extraction',
@@ -16,7 +23,18 @@ const extractionSchema = {
   schema: {
     type: 'object',
     additionalProperties: false,
-    required: ['storeName', 'receiptNumber', 'purchasedOn', 'purchasedAtLocal', 'currency', 'declaredTotalCents', 'lines'],
+    required: [
+      'storeName',
+      'receiptNumber',
+      'purchasedOn',
+      'purchasedAtLocal',
+      'currency',
+      'declaredTotalCents',
+      'subtotalExcludingTaxCents',
+      'taxCents',
+      'amountPaidCents',
+      'lines',
+    ],
     properties: {
       storeName: { type: ['string', 'null'] },
       receiptNumber: {
@@ -37,7 +55,19 @@ const extractionSchema = {
       },
       declaredTotalCents: {
         type: ['integer', 'null'],
-        description: 'Final amount charged in minor currency units, for example NZ$12.34 is 1234.',
+        description: 'Final tax-inclusive receipt total in minor units. Never use a subtotal or TOTAL EXCL GST.',
+      },
+      subtotalExcludingTaxCents: {
+        type: ['integer', 'null'],
+        description: 'Printed subtotal before GST/tax, such as TOTAL EXCL GST, in minor units.',
+      },
+      taxCents: {
+        type: ['integer', 'null'],
+        description: 'Printed GST or tax amount in minor units.',
+      },
+      amountPaidCents: {
+        type: ['integer', 'null'],
+        description: 'Actual final card/debit charge or purchase amount in minor units; never cash tendered.',
       },
       lines: {
         type: 'array',
@@ -71,6 +101,9 @@ const isRawExtraction = (value: unknown): value is RawExtraction => {
     && (typeof result.purchasedAtLocal === 'string' || result.purchasedAtLocal === null)
     && (typeof result.currency === 'string' || result.currency === null)
     && (Number.isInteger(result.declaredTotalCents) || result.declaredTotalCents === null)
+    && (Number.isInteger(result.subtotalExcludingTaxCents) || result.subtotalExcludingTaxCents === null)
+    && (Number.isInteger(result.taxCents) || result.taxCents === null)
+    && (Number.isInteger(result.amountPaidCents) || result.amountPaidCents === null)
     && result.lines.every((line) => {
       if (!line || typeof line !== 'object' || Array.isArray(line)) return false;
       const candidate = line as Record<string, unknown>;
@@ -94,7 +127,7 @@ const candidateLine = (line: RawExtractionLine, sortOrder: number): ReceiptCandi
     sortOrder,
     rawText: line.rawText,
     productName: line.productName,
-    quantity: line.quantity,
+    quantity: normalizeReceiptQuantity(line.quantity),
     unit: line.unit,
     unitPriceCents: calculatedUnitPrice,
     unitPriceBasis: line.unitPriceBasis,
@@ -105,10 +138,24 @@ const candidateLine = (line: RawExtractionLine, sortOrder: number): ReceiptCandi
   };
 };
 
-const candidateFromRawExtraction = (raw: RawExtraction): ReceiptExtraction => ({
-  ...raw,
-  lines: raw.lines.map(candidateLine),
-});
+const candidateFromRawExtraction = (raw: RawExtraction): ReceiptExtraction => {
+  const {
+    subtotalExcludingTaxCents,
+    taxCents,
+    amountPaidCents,
+    ...candidate
+  } = raw;
+  return {
+    ...candidate,
+    declaredTotalCents: resolveDeclaredTotalCents({
+      declaredTotalCents: raw.declaredTotalCents,
+      subtotalExcludingTaxCents,
+      taxCents,
+      amountPaidCents,
+    }),
+    lines: raw.lines.map(candidateLine),
+  };
+};
 
 export const extractReceiptFromImage = async (
   image: Uint8Array,
@@ -136,7 +183,27 @@ export const extractReceiptFromImage = async (
         response_format: { type: 'json_schema', json_schema: extractionSchema },
         messages: [{
           role: 'system',
-          content: 'Extract one retail receipt into the schema exactly. Return only purchased goods as lines; exclude subtotal, total, tax, payment, loyalty, cashier, change and other non-item lines. Preserve every printed amount and sign. declaredTotalCents and linePriceCents use minor currency units. unitPriceCents is the per-unit price in minor units. Split quantity and unit instead of combining them in one string. quantity must be a decimal string that preserves printed precision, for example "0.860"; use null when unreadable. purchasedOn must be YYYY-MM-DD and purchasedAtLocal must be YYYY-MM-DDTHH:MM without timezone. Never use 0 for unreadable monetary values; 0 is allowed only when the receipt explicitly shows a free item or zero amount. Only set receiptNumber if it is explicitly labelled as a receipt or transaction number; never use terminal, EFTPOS, card, cashier, order, authorisation or tax-invoice identifiers. Use null for any unreadable or uncertain field. confidence is 0 to 1 when estimated, otherwise null. Check that item prices reconcile to the receipt total when possible.',
+          content: [
+            'Extract one retail receipt into the schema exactly.',
+            'Return only purchased goods as lines; exclude subtotal, total, tax, payment, loyalty, cashier, change and other non-item lines.',
+            'declaredTotalCents is always the final tax-inclusive amount owed or charged.',
+            'Never use TOTAL EXCL GST, subtotal before tax, net amount, GST amount, tax amount, cash tendered, or change as declaredTotalCents.',
+            'Capture TOTAL EXCL GST in subtotalExcludingTaxCents and GST/tax in taxCents.',
+            'Capture the final electronic PURCHASE, PURC, DEBIT, CARD CHARGE, or amount paid in amountPaidCents.',
+            'For cash, amountPaidCents is the final sale total, not cash received before change.',
+            'When a receipt shows TOTAL EXCL GST 227.68, GST 34.15, and TOTAL or PURC 261.83, declaredTotalCents and amountPaidCents must be 26183.',
+            'Preserve every printed amount and sign.',
+            'All monetary fields ending in Cents use minor currency units.',
+            'unitPriceCents is the per-unit price in minor units.',
+            'Split quantity and unit instead of combining them in one string.',
+            'quantity must be a decimal string preserving printed precision, for example "0.860"; use null when unreadable.',
+            'purchasedOn must be YYYY-MM-DD and purchasedAtLocal must be YYYY-MM-DDTHH:MM without timezone.',
+            'Never use 0 for unreadable monetary values; 0 is allowed only for an explicitly free item or zero amount.',
+            'Only set receiptNumber if explicitly labelled as a receipt or transaction number; never use terminal, EFTPOS, card, cashier, order, authorisation, tax-invoice, or barcode identifiers.',
+            'Use null for any unreadable or uncertain field.',
+            'confidence is 0 to 1 when estimated, otherwise null.',
+            'Check that item prices reconcile to the final tax-inclusive receipt total when possible.',
+          ].join(' '),
         }, {
           role: 'user',
           content: [

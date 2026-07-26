@@ -513,6 +513,7 @@ Content-Type: application/json
 | 409 | `ACCOUNT_LINK_REQUIRED` | 相同邮箱已有其他登录方式 |
 | 409 | `HOUSEHOLD_REQUIRED` | 业务操作前尚未创建/加入家庭 |
 | 409 | `OWNER_TRANSFER_REQUIRED` | 删除账号前必须转让Owner |
+| 409 | `DUPLICATE_RECEIPT` | 同一家庭中相同小票号、日期和总额的小票已经入账 |
 | 429 | `RATE_LIMITED` | 验证码发送过于频繁 |
 
 `GET /mock/session` 仅 `NODE_ENV=development` 可用；preview 和 production 返回 404。开发测试用户使用 CLI 幂等关联 mock household：

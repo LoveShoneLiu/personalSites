@@ -307,6 +307,30 @@ export const confirmScannedCandidate = async (
     return { created: false, detail: await candidateDetail(existing.id) };
   }
 
+  const receiptNumber = candidate.receiptNumber?.trim() || null;
+  if (
+    receiptNumber !== null
+    && candidate.purchasedOn !== null
+    && candidate.declaredTotalCents !== null
+  ) {
+    const [duplicate] = await db.select({ id: receipts.id }).from(receipts).where(and(
+      eq(receipts.householdId, householdId),
+      eq(receipts.status, 'confirmed'),
+      eq(receipts.receiptNumber, receiptNumber),
+      eq(receipts.purchasedOn, candidate.purchasedOn),
+      eq(receipts.totalCents, candidate.declaredTotalCents),
+      isNull(receipts.deletedAt),
+    )).limit(1);
+    if (duplicate) {
+      throw new ReceiptlyError(
+        409,
+        'DUPLICATE_RECEIPT',
+        '这张小票已经入账。',
+        { existingReceiptId: duplicate.id },
+      );
+    }
+  }
+
   const currency = candidate.currency && /^[a-z]{3}$/i.test(candidate.currency)
     ? candidate.currency.toUpperCase()
     : null;
@@ -321,7 +345,7 @@ export const confirmScannedCandidate = async (
       entryMode: 'scan',
       status: 'confirmed',
       storeName: candidate.storeName?.trim() || null,
-      receiptNumber: candidate.receiptNumber?.trim() || null,
+      receiptNumber,
       purchasedOn: candidate.purchasedOn,
       purchasedAtLocal: candidate.purchasedAtLocal,
       totalCents: candidate.declaredTotalCents,

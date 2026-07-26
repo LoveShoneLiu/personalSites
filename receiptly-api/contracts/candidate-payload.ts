@@ -1,3 +1,4 @@
+import { normalizeReceiptQuantity } from '@/receiptly-api/domain/quantity';
 import { ReceiptCandidate } from './receipt-candidate';
 import { ReceiptlyError } from './errors';
 import { readObject } from './validation';
@@ -35,7 +36,15 @@ export const readScannedCandidate = (value: unknown): ReceiptCandidate => {
       if (line.source !== undefined && line.source !== 'ai' && line.source !== 'manual') {
         throw new ReceiptlyError(400, 'VALIDATION_ERROR', `lines[${sortOrder}].source is invalid.`);
       }
-      const quantity = nullableString(line.quantity, `lines[${sortOrder}].quantity`, 32);
+      const rawQuantity = nullableString(line.quantity, `lines[${sortOrder}].quantity`, 32);
+      const quantity = normalizeReceiptQuantity(rawQuantity);
+      if (rawQuantity !== null && quantity === null) {
+        throw new ReceiptlyError(
+          400,
+          'VALIDATION_ERROR',
+          `lines[${sortOrder}].quantity must be a positive number with up to 3 decimal places.`,
+        );
+      }
       return {
         sortOrder,
         rawText: nullableString(line.rawText, `lines[${sortOrder}].rawText`, 500),
