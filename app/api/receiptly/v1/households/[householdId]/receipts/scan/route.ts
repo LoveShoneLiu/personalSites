@@ -6,8 +6,10 @@ import { requireActor } from '@/receiptly-api/infrastructure/auth/guard';
 import { extractReceiptFromImage } from '@/receiptly-api/infrastructure/ai/openrouter';
 
 export const runtime = 'nodejs';
+// OCR 是外部网络调用，为非 Fluid Compute 环境显式申请 Hobby 计划允许的最长执行时间。
+export const maxDuration = 60;
 
-const maxImageBytes = 7 * 1024 * 1024;
+const maxImageBytes = 4 * 1024 * 1024;
 type Context = { params: Promise<{ householdId: string }> };
 
 type UploadImage = File;
@@ -38,7 +40,7 @@ export async function POST(request: NextRequest, context: Context) {
       throw new ReceiptlyError(400, 'IMAGE_INVALID', 'image must be a JPEG or PNG file.');
     }
     if (image.size === 0 || image.size > maxImageBytes) {
-      throw new ReceiptlyError(400, 'IMAGE_INVALID', 'image must be between 1 byte and 7 MB.');
+      throw new ReceiptlyError(400, 'IMAGE_INVALID', 'image must be between 1 byte and 4 MB.');
     }
 
     // 图片 Buffer 只存在于本次请求中，禁止持久化或记录日志。

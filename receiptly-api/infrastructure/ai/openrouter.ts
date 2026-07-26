@@ -5,6 +5,8 @@ import { normalizeReceiptQuantity } from '@/receiptly-api/domain/quantity';
 import { resolveDeclaredTotalCents } from './receipt-total';
 
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
+// 主动超时必须早于 Vercel Function 上限，预留时间生成统一错误响应。
+const OCR_REQUEST_TIMEOUT_MS = 50_000;
 const defaultModel = 'qwen/qwen3-vl-32b-instruct';
 
 export type ReceiptExtraction = ReceiptCandidate;
@@ -179,6 +181,7 @@ export const extractReceiptFromImage = async (
   try {
     response = await fetch(OPENROUTER_ENDPOINT, {
       method: 'POST',
+      signal: AbortSignal.timeout(OCR_REQUEST_TIMEOUT_MS),
       headers: {
         Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
@@ -221,7 +224,13 @@ export const extractReceiptFromImage = async (
         }],
       }),
     });
-  } catch {
+  } catch (error) {
+    if (
+      error instanceof DOMException
+      && (error.name === 'TimeoutError' || error.name === 'AbortError')
+    ) {
+      throw new ReceiptlyError(504, 'OCR_PROVIDER_ERROR', '小票识别超时，请稍后重试。');
+    }
     throw new ReceiptlyError(502, 'OCR_PROVIDER_ERROR', 'Receipt image recognition is temporarily unavailable.');
   }
 
