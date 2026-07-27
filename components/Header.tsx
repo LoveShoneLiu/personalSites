@@ -68,6 +68,9 @@ const Header = () => {
     window.dispatchEvent(new Event('sessionStorageChange'));
   };
 
+  // Receiptly 的公开合规页面独立展示，不使用个人网站的导航和登录入口。
+  if (pathname === '/receiptly/privacy') return null;
+
   return (
     <>
       <header className={styles.header}>
