@@ -3,7 +3,8 @@ import { NextRequest } from 'next/server';
 import { requestEmailCode } from '@/receiptly-api/application/auth';
 import { requiredEmail } from '@/receiptly-api/contracts/auth-payload';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';
-import { readObject, requiredString } from '@/receiptly-api/contracts/validation';
+import { readReceiptlyLocale } from '@/receiptly-api/contracts/locale';
+import { readObject } from '@/receiptly-api/contracts/validation';
 
 export const runtime = 'nodejs';
 
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
     const body = readObject(await request.json());
     return dataResponse(await requestEmailCode(
       requiredEmail(body.email),
-      body.locale === undefined ? 'en-NZ' : requiredString(body.locale, 'locale', 16),
+      readReceiptlyLocale(body.locale, 'en-NZ'),
     ), 202);
   } catch (error) {
     return errorResponse(error);

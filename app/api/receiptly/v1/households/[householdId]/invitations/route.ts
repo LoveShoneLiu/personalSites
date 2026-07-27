@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server';
 import { createHouseholdInvitation } from '@/receiptly-api/application/family';
 import { requiredEmail, requiredUuid } from '@/receiptly-api/contracts/auth-payload';
 import { dataResponse, errorResponse } from '@/receiptly-api/contracts/errors';
+import { readReceiptlyLocale } from '@/receiptly-api/contracts/locale';
 import { readObject } from '@/receiptly-api/contracts/validation';
 import { requireActor } from '@/receiptly-api/infrastructure/auth/guard';
 
@@ -19,6 +20,7 @@ export async function POST(request: NextRequest, context: Context) {
       actor,
       requiredUuid(householdId, 'householdId'),
       requiredEmail(body.email),
+      readReceiptlyLocale(body.locale, 'en-NZ'),
     );
     return dataResponse(result, 201, '邀请邮件已发送。');
   } catch (error) {

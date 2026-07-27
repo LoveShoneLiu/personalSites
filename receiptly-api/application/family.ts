@@ -5,6 +5,7 @@ import {
   and, count, desc, eq, gte, isNull,
 } from 'drizzle-orm';
 import { ReceiptlyError } from '@/receiptly-api/contracts/errors';
+import { ReceiptlyLocale } from '@/receiptly-api/contracts/locale';
 import { ReceiptlyActor, requireMembership } from '@/receiptly-api/infrastructure/auth/guard';
 import { hashLoginSecret } from '@/receiptly-api/infrastructure/auth/tokens';
 import {
@@ -107,6 +108,7 @@ export const createHouseholdInvitation = async (
   actor: ReceiptlyActor,
   householdId: string,
   email: string,
+  locale: ReceiptlyLocale,
 ) => {
   await requireMembership(actor, householdId, true);
   const from = process.env.RECEIPTLY_EMAIL_FROM;
@@ -172,11 +174,17 @@ export const createHouseholdInvitation = async (
   });
 
   try {
+    const subject = locale === 'zh-CN'
+      ? 'Receiptly 家庭邀请'
+      : 'You are invited to join a Receiptly household';
+    const message = locale === 'zh-CN'
+      ? `你收到了 Receiptly 家庭邀请。邀请码是 ${code}，7 天内有效。请登录 App 后输入邀请码并确认加入。`
+      : `You have been invited to join a Receiptly household. Your invitation code is ${code}. It expires in 7 days. Sign in to the app, enter the code, and confirm that you want to join.`;
     const { error } = await resendClient().emails.send({
       from,
       to: email,
-      subject: 'Receiptly 家庭邀请',
-      text: `你收到了 Receiptly 家庭邀请。邀请码是 ${code}，7 天内有效。请登录 App 后输入邀请码并确认加入。`,
+      subject,
+      text: message,
     });
     if (error) throw new Error(error.message);
   } catch {
