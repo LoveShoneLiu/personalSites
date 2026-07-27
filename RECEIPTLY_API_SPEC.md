@@ -315,6 +315,9 @@ MVP 验证签名、`iss`、`aud`、`azp`、`exp` 和 `sub`，使用 `sub` 作为
 }
 ```
 
+`locale` 只接受 `en-NZ` 或 `zh-CN`，服务端据此选择英文或中文验证码邮件。
+旧版客户端未传时默认 `en-NZ`。
+
 成功固定返回 `202`：
 
 ```json
@@ -578,9 +581,13 @@ npm run receiptly:dev:link-mock -- --email user@example.com
 
 ```json
 {
-  "email": "member@example.com"
+  "email": "member@example.com",
+  "locale": "en-NZ"
 }
 ```
+
+`locale` 只接受 `en-NZ` 或 `zh-CN`，并决定家庭邀请邮件的主题和正文语言。
+旧版客户端未传时默认 `en-NZ`。
 
 家庭邀请 MVP 约束：
 

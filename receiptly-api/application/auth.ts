@@ -17,6 +17,7 @@ import {
   AuthSessionResponse,
 } from '@/receiptly-api/contracts/auth';
 import { ReceiptlyError } from '@/receiptly-api/contracts/errors';
+import { ReceiptlyLocale } from '@/receiptly-api/contracts/locale';
 import {
   getReceiptlyDb,
   householdMembers,
@@ -358,7 +359,7 @@ const resendClient = () => {
  * 创建并发送一次性邮箱验证码。
  * 同一邮箱受小时配额和重发间隔限制，数据库只保存验证码 Hash。
  */
-export const requestEmailCode = async (emailInput: string, locale: string) => {
+export const requestEmailCode = async (emailInput: string, locale: ReceiptlyLocale) => {
   const email = normalizeEmail(emailInput);
   const from = process.env.RECEIPTLY_EMAIL_FROM;
   if (!from) throw new ReceiptlyError(503, 'CONFIGURATION_ERROR', 'Email sender is not configured.');
@@ -392,10 +393,10 @@ export const requestEmailCode = async (emailInput: string, locale: string) => {
     expiresAt: new Date(Date.now() + EMAIL_CODE_LIFETIME_MS),
     resendAvailableAt: new Date(Date.now() + EMAIL_RESEND_DELAY_MS),
   });
-  const subject = locale.toLowerCase().startsWith('zh')
+  const subject = locale === 'zh-CN'
     ? '您的 Receiptly 登录/注册验证码'
     : 'Your Receiptly verification code';
-  const message = locale.toLowerCase().startsWith('zh')
+  const message = locale === 'zh-CN'
     ? `您的验证码是 ${code}，10 分钟内有效。请勿将验证码告诉他人。`
     : `Your login code is ${code}. It expires in 10 minutes. Do not share it.`;
   try {
