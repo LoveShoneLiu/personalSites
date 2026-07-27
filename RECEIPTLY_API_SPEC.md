@@ -135,7 +135,7 @@ receiptly-api/infrastructure # 独立 DB/auth/storage/job adapters
 所有 Receiptly 响应都使用同一顶层 envelope：
 
 - `status`: `0` 表示业务成功；非 `0` 时使用对应 HTTP 状态码。
-- `message`: 成功固定为 `success`；失败时为可展示的错误文案。
+- `message`: 成功默认为 `success`，部分写操作返回明确成功文案；失败时为可展示的错误文案。
 - `data`: 成功时为业务数据；失败时固定为 `null`。
 - `error`: 仅失败时存在，继续提供稳定的 `code`、`details` 和 `requestId` 给 App 做程序化处理。
 
@@ -562,26 +562,59 @@ npm run receiptly:dev:link-mock -- --email user@example.com
 | --- | --- | --- | --- | --- |
 | A | POST | `/households` | User without household | 创建家庭并成为 Owner |
 | A | GET | `/households/:householdId` | Member | 家庭名称、时区、币种和当前角色 |
+| A | GET | `/households/:householdId/members` | Member | 当前有效成员列表 |
+| A | DELETE | `/households/:householdId/members/:userId` | Owner | 软删除普通成员 |
+| A | POST | `/households/:householdId/invitations` | Owner | 通过邮箱发送一次性邀请码 |
+| A | POST | `/household-invitations/preview` | User | 输入邀请码并预览家庭 |
+| A | POST | `/household-invitations/accept` | User | 明确同意并加入家庭 |
 | D | PATCH | `/households/:householdId` | Owner | 修改名称、时区和设置，要求 `If-Match` |
 | D | DELETE | `/households/:householdId` | Owner | 发起家庭删除，强二次确认 |
 | D | GET | `/households/:householdId/deletion` | Owner | 查询家庭删除状态和实际范围 |
-| D | GET | `/households/:householdId/members` | Member | 成员列表 |
 | D | PATCH | `/households/:householdId/members/:userId` | Owner | 修改成员角色/状态 |
-| D | DELETE | `/households/:householdId/members/:userId` | Owner | 移除成员，不能移除唯一 Owner |
-| D | POST | `/households/:householdId/invitations` | Owner | 创建一次性邀请 |
 | D | GET | `/households/:householdId/invitations` | Owner | 查看未完成邀请，不返回 token |
 | D | DELETE | `/households/:householdId/invitations/:invitationId` | Owner | 撤销邀请 |
-| D | GET | `/invitations/:token` | Public | 验证邀请并返回最小展示信息 |
-| D | POST | `/invitations/:token/accept` | User | 接受邀请，token 一次性消费 |
 
 创建邀请请求：
 
 ```json
 {
-  "email": "member@example.com",
-  "role": "member"
+  "email": "member@example.com"
 }
 ```
+
+家庭邀请 MVP 约束：
+
+- 一个用户最多只有一个 `active` 家庭成员关系；数据库使用部分唯一索引兜底。
+- 邀请码为 8 位大写字母和数字，排除 `0/O/1/I`，不区分输入大小写，7 天有效且只能使用一次。
+- 数据库只保存邀请码 HMAC，原始邀请码只进入 Resend 邮件，不进入日志。
+- 被邀请人使用邀请码调用 `preview`，确认家庭名称后再调用 `accept`。
+- 接受时当前登录邮箱必须与邀请邮箱一致。
+- Owner 每小时最多发送 5 次邀请，同一家庭同一邮箱至少间隔 60 秒。
+- 单个登录账号 15 分钟最多查询邀请码 10 次。
+- 删除成员只把 membership 标记为 `removed`；该成员过去确认的小票继续保留。
+- 第一版不支持成员自行退出、Owner 转让、多个家庭或邀请链接。
+
+邀请预览和接受请求：
+
+```json
+{
+  "code": "A7KM3X9P"
+}
+```
+
+新增稳定错误码：
+
+| HTTP | code | 场景 |
+| ---: | --- | --- |
+| 403 | `OWNER_ACCESS_REQUIRED` | 只有 Owner 可以执行 |
+| 404 | `INVITATION_NOT_FOUND` | 邀请码不存在或已撤销 |
+| 410 | `INVITATION_EXPIRED` | 邀请码已过期 |
+| 409 | `INVITATION_ALREADY_ACCEPTED` | 邀请码已使用 |
+| 403 | `INVITATION_EMAIL_MISMATCH` | 登录邮箱与邀请邮箱不同 |
+| 409 | `ALREADY_A_MEMBER` | 用户已经属于目标家庭 |
+| 409 | `USER_ALREADY_HAS_HOUSEHOLD` | 用户已经加入其他家庭 |
+| 404 | `MEMBER_NOT_FOUND` | 目标普通成员不存在 |
+| 409 | `CANNOT_REMOVE_OWNER` | 尝试删除 Owner |
 
 ## 5. 分类接口
 

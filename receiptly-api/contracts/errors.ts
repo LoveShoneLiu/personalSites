@@ -20,6 +20,15 @@ export type ReceiptlyErrorCode =
   | 'ACCOUNT_LINK_REQUIRED'
   | 'IDENTITY_ALREADY_LINKED'
   | 'HOUSEHOLD_REQUIRED'
+  | 'OWNER_ACCESS_REQUIRED'
+  | 'INVITATION_NOT_FOUND'
+  | 'INVITATION_EXPIRED'
+  | 'INVITATION_ALREADY_ACCEPTED'
+  | 'INVITATION_EMAIL_MISMATCH'
+  | 'ALREADY_A_MEMBER'
+  | 'USER_ALREADY_HAS_HOUSEHOLD'
+  | 'MEMBER_NOT_FOUND'
+  | 'CANNOT_REMOVE_OWNER'
   | 'OWNER_TRANSFER_REQUIRED'
   | 'DELETION_REAUTH_REQUIRED'
   | 'FORBIDDEN'
@@ -108,10 +117,10 @@ export const errorResponse = (error: unknown) => {
 };
 
 /** 使用 Receiptly 统一响应结构返回成功数据。 */
-export const dataResponse = <T>(data: T, status = 200) => NextResponse.json(
+export const dataResponse = <T>(data: T, status = 200, message = 'success') => NextResponse.json(
   {
     status: 0,
-    message: 'success',
+    message,
     data,
   },
   { status, headers: { 'Cache-Control': 'private, no-store' } },

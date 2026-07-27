@@ -77,7 +77,7 @@ export const requireMembership = async (actor: ReceiptlyActor, householdId: stri
   const membership = result[0];
   if (!membership) throw new ReceiptlyError(404, 'NOT_FOUND', 'Resource not found.');
   if (ownerOnly && membership.role !== 'owner') {
-    throw new ReceiptlyError(403, 'FORBIDDEN', 'Owner access is required.');
+    throw new ReceiptlyError(403, 'OWNER_ACCESS_REQUIRED', 'Owner access is required.');
   }
   return membership;
 };

@@ -62,7 +62,7 @@ export const createHouseholdForUser = async (
     eq(householdMembers.status, 'active'),
   )).limit(1);
   if (existing.length > 0) {
-    throw new ReceiptlyError(409, 'VERSION_CONFLICT', '当前MVP每个用户只能加入一个家庭。');
+    throw new ReceiptlyError(409, 'USER_ALREADY_HAS_HOUSEHOLD', '当前MVP每个用户只能加入一个家庭。');
   }
   const household = await db.transaction(async (tx) => {
     const [created] = await tx.insert(households).values({
