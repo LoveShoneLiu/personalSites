@@ -181,6 +181,10 @@
   }
 }
 
+.footerLinks {
+  margin-top: var(--spacing-sm);
+}
+
 @media (max-width: 768px) {
   .header {
     padding: var(--spacing-md) 0;

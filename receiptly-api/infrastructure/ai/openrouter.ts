@@ -20,6 +20,17 @@ type RawExtraction = Omit<ReceiptExtraction, 'lines'> & {
   lines: RawExtractionLine[];
 };
 
+/**
+ * 判断外部请求是否因超时或主动中止而失败。
+ * Node.js 运行时抛出的 TimeoutError 不保证是当前 realm 的 DOMException，
+ * 因此需要同时根据异常名称判断，避免把可识别的超时错误误报为 500。
+ */
+const isRequestTimeout = (error: unknown): boolean => {
+  if (!error || typeof error !== 'object') return false;
+  const { name } = error as { name?: unknown };
+  return name === 'TimeoutError' || name === 'AbortError';
+};
+
 // Provider 侧的 Schema 约束只能提高一致性；外部模型输出仍属于不可信输入，
 // 服务端必须继续执行运行时校验。
 const extractionSchema = {
@@ -225,10 +236,7 @@ export const extractReceiptFromImage = async (
       }),
     });
   } catch (error) {
-    if (
-      error instanceof DOMException
-      && (error.name === 'TimeoutError' || error.name === 'AbortError')
-    ) {
+    if (isRequestTimeout(error)) {
       throw new ReceiptlyError(504, 'OCR_PROVIDER_ERROR', '小票识别超时，请稍后重试。');
     }
     throw new ReceiptlyError(502, 'OCR_PROVIDER_ERROR', 'Receipt image recognition is temporarily unavailable.');
@@ -238,7 +246,12 @@ export const extractReceiptFromImage = async (
     throw new ReceiptlyError(502, 'OCR_PROVIDER_ERROR', 'Receipt image recognition failed.');
   }
 
-  const payload = await response.json() as { choices?: Array<{ message?: { content?: string } }> };
+  let payload: { choices?: Array<{ message?: { content?: string } }> };
+  try {
+    payload = await response.json() as typeof payload;
+  } catch {
+    throw new ReceiptlyError(502, 'OCR_RESULT_INVALID', 'Receipt image recognition returned an invalid response.');
+  }
   const content = payload.choices?.[0]?.message?.content;
   if (typeof content !== 'string') {
     throw new ReceiptlyError(502, 'OCR_PROVIDER_ERROR', 'Receipt image recognition returned no result.');

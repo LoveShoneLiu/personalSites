@@ -14,6 +14,7 @@ import {
   uniqueIndex,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 export const householdRole = pgEnum('receiptly_household_role', ['owner', 'member']);
 export const membershipStatus = pgEnum('receiptly_membership_status', ['active', 'removed']);
@@ -155,7 +156,39 @@ export const householdMembers = pgTable('receiptly_household_members', {
   createdAt: createdAt(),
 }, (table) => [
   uniqueIndex('receiptly_household_members_household_user_idx').on(table.householdId, table.userId),
+  uniqueIndex('receiptly_household_members_one_active_household_idx')
+    .on(table.userId)
+    .where(sql`${table.status} = 'active'`),
   index('receiptly_household_members_user_status_idx').on(table.userId, table.status),
+]);
+
+export const householdInvitations = pgTable('receiptly_household_invitations', {
+  id: id(),
+  householdId: uuid('household_id').notNull().references(() => households.id, { onDelete: 'cascade' }),
+  invitedEmail: varchar('invited_email', { length: 320 }).notNull(),
+  codeHash: text('code_hash').notNull().unique(),
+  invitedBy: uuid('invited_by').notNull().references(() => receiptlyUsers.id),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  acceptedBy: uuid('accepted_by').references(() => receiptlyUsers.id),
+  revokedAt: timestamp('revoked_at', { withTimezone: true }),
+  createdAt: createdAt(),
+}, (table) => [
+  uniqueIndex('receiptly_household_invitations_active_email_idx')
+    .on(table.householdId, table.invitedEmail)
+    .where(sql`${table.acceptedAt} IS NULL AND ${table.revokedAt} IS NULL`),
+  index('receiptly_household_invitations_owner_created_idx').on(table.invitedBy, table.createdAt),
+  index('receiptly_household_invitations_expiry_idx').on(table.expiresAt),
+]);
+
+// 失败的邀请码查询按认证用户计数，避免短邀请码被批量枚举。
+export const householdInvitationAttempts = pgTable('receiptly_household_invitation_attempts', {
+  id: id(),
+  userId: uuid('user_id').notNull().references(() => receiptlyUsers.id, { onDelete: 'cascade' }),
+  succeeded: boolean('succeeded').notNull().default(false),
+  createdAt: createdAt(),
+}, (table) => [
+  index('receiptly_household_invitation_attempts_user_created_idx').on(table.userId, table.createdAt),
 ]);
 
 export const receiptlyStores = pgTable('receiptly_stores', {
