@@ -20,6 +20,53 @@ type RawExtraction = Omit<ReceiptExtraction, 'lines'> & {
   lines: RawExtractionLine[];
 };
 
+type OcrFailureStage =
+  | 'request_timeout'
+  | 'request_failed'
+  | 'upstream_http_error'
+  | 'upstream_response_invalid'
+  | 'upstream_result_missing'
+  | 'model_result_invalid_json'
+  | 'model_result_schema_mismatch';
+
+/**
+ * 记录 OCR 上游故障的可观测元数据。
+ * 禁止传入或记录图片、请求正文、认证凭据及模型返回正文。
+ */
+const logOcrFailure = ({
+  stage,
+  model,
+  startedAt,
+  response,
+  error,
+  resultLength,
+}: {
+  stage: OcrFailureStage;
+  model: string;
+  startedAt: number;
+  response?: Response;
+  error?: unknown;
+  resultLength?: number;
+}) => {
+  // 仅记录定位上游故障所需的非敏感技术信息。
+  // eslint-disable-next-line no-console
+  console.error('Receiptly OCR provider failure.', {
+    stage,
+    model,
+    durationMs: Date.now() - startedAt,
+    upstreamStatus: response?.status,
+    upstreamStatusText: response?.statusText || undefined,
+    upstreamContentType: response?.headers.get('content-type') ?? undefined,
+    upstreamContentLength: response?.headers.get('content-length') ?? undefined,
+    upstreamRequestId: response?.headers.get('x-request-id')
+      ?? response?.headers.get('x-openrouter-request-id')
+      ?? undefined,
+    upstreamCfRay: response?.headers.get('cf-ray') ?? undefined,
+    errorName: error instanceof Error ? error.name : undefined,
+    resultLength,
+  });
+};
+
 /**
  * 判断外部请求是否因超时或主动中止而失败。
  * Node.js 运行时抛出的 TimeoutError 不保证是当前 realm 的 DOMException，
@@ -187,6 +234,8 @@ export const extractReceiptFromImage = async (
     throw new ReceiptlyError(503, 'OCR_CONFIGURATION_ERROR', 'Receipt image recognition is not configured.');
   }
 
+  const model = process.env.RECEIPTLY_OCR_MODEL ?? defaultModel;
+  const startedAt = Date.now();
   const imageDataUrl = `data:${mimeType};base64,${Buffer.from(image).toString('base64')}`;
   let response: Response;
   try {
@@ -198,7 +247,7 @@ export const extractReceiptFromImage = async (
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: process.env.RECEIPTLY_OCR_MODEL ?? defaultModel,
+        model,
         temperature: 0,
         stream: false,
         provider: { require_parameters: true },
@@ -237,37 +286,83 @@ export const extractReceiptFromImage = async (
     });
   } catch (error) {
     if (isRequestTimeout(error)) {
+      logOcrFailure({
+        stage: 'request_timeout',
+        model,
+        startedAt,
+        error,
+      });
       throw new ReceiptlyError(504, 'OCR_PROVIDER_ERROR', 'Receipt recognition timed out. Please try again.');
     }
+    logOcrFailure({
+      stage: 'request_failed',
+      model,
+      startedAt,
+      error,
+    });
     throw new ReceiptlyError(502, 'OCR_PROVIDER_ERROR', 'Receipt image recognition is temporarily unavailable.');
   }
 
   if (!response.ok) {
+    logOcrFailure({
+      stage: 'upstream_http_error',
+      model,
+      startedAt,
+      response,
+    });
     throw new ReceiptlyError(502, 'OCR_PROVIDER_ERROR', 'Receipt image recognition failed.');
   }
 
   let payload: { choices?: Array<{ message?: { content?: string } }> };
   try {
     payload = await response.json() as typeof payload;
-  } catch {
+  } catch (error) {
+    logOcrFailure({
+      stage: 'upstream_response_invalid',
+      model,
+      startedAt,
+      response,
+      error,
+    });
     throw new ReceiptlyError(502, 'OCR_RESULT_INVALID', 'Receipt image recognition returned an invalid response.');
   }
   const content = payload.choices?.[0]?.message?.content;
   if (typeof content !== 'string') {
+    logOcrFailure({
+      stage: 'upstream_result_missing',
+      model,
+      startedAt,
+      response,
+    });
     throw new ReceiptlyError(502, 'OCR_PROVIDER_ERROR', 'Receipt image recognition returned no result.');
   }
 
   let extraction: unknown;
   try {
     extraction = JSON.parse(content);
-  } catch {
+  } catch (error) {
+    logOcrFailure({
+      stage: 'model_result_invalid_json',
+      model,
+      startedAt,
+      response,
+      error,
+      resultLength: content.length,
+    });
     throw new ReceiptlyError(502, 'OCR_RESULT_INVALID', 'Receipt image recognition returned an invalid result.');
   }
   if (!isRawExtraction(extraction)) {
+    logOcrFailure({
+      stage: 'model_result_schema_mismatch',
+      model,
+      startedAt,
+      response,
+      resultLength: content.length,
+    });
     throw new ReceiptlyError(502, 'OCR_RESULT_INVALID', 'Receipt image recognition returned an invalid result.');
   }
   return {
     extraction: candidateFromRawExtraction(extraction),
-    model: process.env.RECEIPTLY_OCR_MODEL ?? defaultModel,
+    model,
   };
 };
