@@ -6,9 +6,11 @@ import { ReceiptlyActor } from '@/receiptly-api/infrastructure/auth/guard';
 import { ReceiptlyError } from '@/receiptly-api/contracts/errors';
 import {
   getReceiptlyDb,
+  householdInvitations,
   householdMembers,
   households,
   receiptlyAuthIdentities,
+  receiptlyEmailLoginCodes,
   receiptlyProviderCredentials,
   receiptlySessions,
   receiptlyUsers,
@@ -151,6 +153,17 @@ export const deleteCurrentAccount = async (actor: ReceiptlyActor) => {
       revokedAt: new Date(),
       revokeReason: 'account_deleted',
     }).where(eq(receiptlySessions.userId, actor.userId));
+    if (actor.email) {
+      // 邮箱验证码与未处理邀请也包含直接身份信息，账号删除时一并清理。
+      await tx.delete(receiptlyEmailLoginCodes).where(eq(
+        receiptlyEmailLoginCodes.email,
+        actor.email.toLowerCase(),
+      ));
+      await tx.delete(householdInvitations).where(eq(
+        householdInvitations.invitedEmail,
+        actor.email.toLowerCase(),
+      ));
+    }
     await tx.delete(receiptlyAuthIdentities).where(eq(
       receiptlyAuthIdentities.userId,
       actor.userId,

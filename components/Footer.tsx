@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import styles from '@/app/layout.module.scss';
 
 const Footer = () => {
@@ -19,6 +20,9 @@ const Footer = () => {
           {year}
           {' '}
           Shaofei Liu. Built with Next.js & Neon.
+        </p>
+        <p className={styles.footerLinks}>
+          <Link href="/receiptly/privacy">Receiptly Privacy Policy</Link>
         </p>
       </div>
     </footer>

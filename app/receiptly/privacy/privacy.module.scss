@@ -1,0 +1,121 @@
+/* 文件职责：定义 Receiptly 隐私政策公开页面的响应式排版和可访问视觉样式。 */
+.page {
+  width: min(860px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 4rem 0 5rem;
+  color: var(--color-text);
+
+  section {
+    padding: 1.75rem 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  h1 {
+    max-width: 720px;
+    margin: 0.35rem 0 1rem;
+    font-size: clamp(2.5rem, 7vw, 4.5rem);
+    line-height: 1;
+    letter-spacing: -0.055em;
+  }
+
+  h2 {
+    margin-bottom: 0.8rem;
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    line-height: 1.25;
+  }
+
+  h3 {
+    margin: 1.2rem 0 0.35rem;
+    font-size: 1.05rem;
+  }
+
+  p,
+  li {
+    color: var(--color-text-secondary);
+  }
+
+  p + p {
+    margin-top: 0.85rem;
+  }
+
+  ul {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0.75rem 0 0.25rem 1.25rem;
+  }
+
+  strong {
+    color: var(--color-text);
+  }
+
+  a {
+    overflow-wrap: anywhere;
+  }
+}
+
+.hero {
+  padding: 2.5rem;
+  color: #f6fff9;
+  background:
+    radial-gradient(circle at 85% 15%, rgb(209 238 86 / 35%), transparent 34%),
+    linear-gradient(145deg, #123c32, #1c5a47);
+  border-radius: 2rem;
+  box-shadow: var(--shadow-xl);
+
+  .intro,
+  .updated {
+    color: rgb(246 255 249 / 82%);
+  }
+}
+
+.eyebrow {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+}
+
+.intro {
+  max-width: 700px;
+  font-size: 1.08rem;
+}
+
+.updated {
+  margin-top: 1rem;
+  font-size: 0.88rem;
+}
+
+.summary {
+  margin: 1.5rem 0 0.5rem;
+  padding: 1.5rem 1.75rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 1.25rem;
+  box-shadow: var(--shadow-sm);
+
+  h2 {
+    margin-bottom: 0.6rem;
+    font-size: 1.2rem;
+  }
+}
+
+.policyFooter {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 2rem;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding-top: 1rem;
+  }
+
+  .hero {
+    padding: 1.75rem 1.4rem;
+    border-radius: 1.4rem;
+  }
+
+  .policyFooter {
+    flex-direction: column;
+  }
+}

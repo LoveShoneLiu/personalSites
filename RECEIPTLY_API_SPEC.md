@@ -963,3 +963,33 @@ CSV 导出默认只包含已确认收据、正式行、分类、商品和价格�
 确认接口先校验门店、日期、总额、商品名、行价以及总额平衡；校验通过后，在同一个事务中写入小票、商品行、确认快照和审计记录，并将小票直接标记为 `confirmed`。因此确认成功后可立即通过首页商品列表读取。
 
 临时 mock 仅用于当前本地联调。真实登录接入时，`/mock/*` 和确认路由中的 mock session 必须替换为 Bearer token 身份验证。
+
+## 21. 账号删除与隐私政策
+
+公开隐私政策地址：
+
+`https://www.liushaofei.cn/receiptly/privacy`
+
+App 必须在“我的账号”中提供明显的“删除账号”入口，并在二次确认后调用：
+
+`DELETE /api/receiptly/v1/me`
+
+- 权限：`Authorization: Bearer <accessToken>`。
+- 不需要请求体。
+- 成功返回 `data.deleted = true`；App 必须清除本地 access token、refresh token 和用户缓存，并返回登录页。
+- 删除会撤销全部服务端会话、删除认证身份并匿名化账号。
+- 唯一成员 Owner 的家庭及其小票数据随账号级联删除。
+- 普通成员删除账号后，其历史共享小票保留在家庭账本，但账号标识被移除。
+- Owner 的家庭仍有其他成员时返回 HTTP 409 和 `OWNER_TRANSFER_REQUIRED`。当前 MVP 未提供 Owner 转让时，App 应引导 Owner 先删除其他成员，然后再次删除账号。
+
+成功响应：
+
+```json
+{
+  "status": 0,
+  "message": "success",
+  "data": {
+    "deleted": true
+  }
+}
+```
