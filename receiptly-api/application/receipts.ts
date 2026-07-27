@@ -333,7 +333,7 @@ export const confirmScannedCandidate = async (
       throw new ReceiptlyError(
         409,
         'DUPLICATE_RECEIPT',
-        '这张小票已经入账。',
+        'This receipt has already been recorded.',
         { existingReceiptId: duplicate.id },
       );
     }

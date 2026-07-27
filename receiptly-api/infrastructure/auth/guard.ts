@@ -96,10 +96,10 @@ export const requireSingleHousehold = async (actor: ReceiptlyActor) => {
     ))
     .limit(2);
   if (result.length === 0) {
-    throw new ReceiptlyError(409, 'HOUSEHOLD_REQUIRED', '请先创建或加入家庭。');
+    throw new ReceiptlyError(409, 'HOUSEHOLD_REQUIRED', 'Create or join a household first.');
   }
   if (result.length > 1) {
-    throw new ReceiptlyError(409, 'VERSION_CONFLICT', '请求必须指定家庭。');
+    throw new ReceiptlyError(409, 'VERSION_CONFLICT', 'A household must be specified for this request.');
   }
   return result[0].householdId;
 };

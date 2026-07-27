@@ -237,7 +237,7 @@ export const extractReceiptFromImage = async (
     });
   } catch (error) {
     if (isRequestTimeout(error)) {
-      throw new ReceiptlyError(504, 'OCR_PROVIDER_ERROR', '小票识别超时，请稍后重试。');
+      throw new ReceiptlyError(504, 'OCR_PROVIDER_ERROR', 'Receipt recognition timed out. Please try again.');
     }
     throw new ReceiptlyError(502, 'OCR_PROVIDER_ERROR', 'Receipt image recognition is temporarily unavailable.');
   }

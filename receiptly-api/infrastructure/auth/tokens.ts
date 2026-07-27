@@ -71,7 +71,7 @@ export const verifyAccessToken = async (token: string): Promise<AccessTokenPaylo
   } catch (error) {
     if (error instanceof ReceiptlyError) throw error;
     if (error instanceof joseErrors.JWTExpired) {
-      throw new ReceiptlyError(401, 'ACCESS_TOKEN_EXPIRED', '登录状态已过期。');
+      throw new ReceiptlyError(401, 'ACCESS_TOKEN_EXPIRED', 'Your session has expired.');
     }
     throw new ReceiptlyError(401, 'AUTHENTICATION_INVALID', 'Authentication is invalid.');
   }

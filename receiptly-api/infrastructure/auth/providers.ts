@@ -46,7 +46,7 @@ export const verifyGoogleIdentity = async (idToken: string): Promise<ProviderIde
       displayName: payload.name?.trim() || null,
     };
   } catch {
-    throw new ReceiptlyError(401, 'PROVIDER_TOKEN_INVALID', 'Google登录凭据无效。');
+    throw new ReceiptlyError(401, 'PROVIDER_TOKEN_INVALID', 'The Google sign-in credential is invalid.');
   }
 };
 
@@ -74,7 +74,7 @@ export const verifyAppleIdentity = async (
     });
     const expectedNonce = createHash('sha256').update(rawNonce).digest('hex');
     if (payload.nonce !== expectedNonce) {
-      throw new ReceiptlyError(401, 'LOGIN_NONCE_INVALID', 'Apple登录 nonce 无效。');
+      throw new ReceiptlyError(401, 'LOGIN_NONCE_INVALID', 'The Apple sign-in nonce is invalid.');
     }
     if (typeof payload.sub !== 'string') throw new Error('Missing Apple subject.');
     return {
@@ -85,7 +85,7 @@ export const verifyAppleIdentity = async (
     };
   } catch (error) {
     if (error instanceof ReceiptlyError) throw error;
-    throw new ReceiptlyError(401, 'PROVIDER_TOKEN_INVALID', 'Apple登录凭据无效。');
+    throw new ReceiptlyError(401, 'PROVIDER_TOKEN_INVALID', 'The Apple sign-in credential is invalid.');
   }
 };
 
@@ -121,7 +121,7 @@ export const exchangeAppleAuthorizationCode = async (authorizationCode: string) 
   });
   const payload = await response.json() as { refresh_token?: string; error?: string };
   if (!response.ok || !payload.refresh_token) {
-    throw new ReceiptlyError(401, 'PROVIDER_TOKEN_INVALID', 'Apple授权码无效。');
+    throw new ReceiptlyError(401, 'PROVIDER_TOKEN_INVALID', 'The Apple authorization code is invalid.');
   }
   return payload.refresh_token;
 };
