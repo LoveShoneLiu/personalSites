@@ -173,6 +173,7 @@ HTTP 状态码不因 envelope 改变：成功仍为 `200/201/202`，客户端错
 ```ts
 type ReceiptCandidateLine = {
   sortOrder: number;
+  lineType: 'product' | 'discount';
   rawText: string | null;
   productName: string | null;
   quantity: string | null;
@@ -197,6 +198,7 @@ type ReceiptCandidate = {
 ```
 
 - `sortOrder` 从 `0` 开始，在同一张收据内唯一且稳定。
+- `product` 行金额不得为负；`discount` 行金额必须为负，并作为调整项参与总额核对。
 - `quantity` 使用十进制字符串，例如 `"0.860"`。
 - 当前扫描与商品列表不返回自动商品品类；品类在未来确认流程另行决定。
 - `linePriceCents: null`、`declaredTotalCents: null` 或其他确认所需字段缺失时，确认接口必须拒绝。
