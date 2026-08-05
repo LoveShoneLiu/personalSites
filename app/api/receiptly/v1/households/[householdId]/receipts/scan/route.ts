@@ -6,8 +6,8 @@ import { requireActor } from '@/receiptly-api/infrastructure/auth/guard';
 import { extractReceiptFromImage } from '@/receiptly-api/infrastructure/ai/openrouter';
 
 export const runtime = 'nodejs';
-// 为视觉模型调用预留充足时间；部署环境必须启用 Vercel Fluid Compute。
-export const maxDuration = 180;
+// 兼容未启用 Vercel Fluid Compute 的 Hobby 项目上限。
+export const maxDuration = 60;
 
 const maxImageBytes = 4 * 1024 * 1024;
 type Context = { params: Promise<{ householdId: string }> };

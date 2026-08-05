@@ -6,8 +6,8 @@ import { extractReceiptFromImage } from '@/receiptly-api/infrastructure/ai/openr
 import { requireActor } from '@/receiptly-api/infrastructure/auth/guard';
 
 export const runtime = 'nodejs';
-// 为视觉模型调用预留充足时间；部署环境必须启用 Vercel Fluid Compute。
-export const maxDuration = 180;
+// 兼容未启用 Vercel Fluid Compute 的 Hobby 项目上限。
+export const maxDuration = 60;
 
 // 即使托管平台可能设置更低的传输上限，应用层仍需保留大小校验；
 // App 在生产环境发送 multipart 数据前，应先将图片压缩到平台限制以内。
