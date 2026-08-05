@@ -42,6 +42,7 @@ export type PersistedCandidateDetail = {
   };
   lines: Array<{
     id: string;
+    lineType: 'product';
     rawText: string | null;
     productName: string | null;
     quantity: string | null;
@@ -51,6 +52,12 @@ export type PersistedCandidateDetail = {
     linePriceCents: number | null;
     source: 'ai' | 'manual';
     included: boolean;
+  }>;
+  adjustments: Array<{
+    id: string;
+    lineType: 'discount';
+    amountCents: number;
+    note: string | null;
   }>;
 };
 
@@ -90,7 +97,7 @@ const receiptDetail = async (receiptId: string) => {
 };
 
 const candidateDetail = async (receiptId: string): Promise<PersistedCandidateDetail> => {
-  const { receipt, lines } = await receiptDetail(receiptId);
+  const { receipt, lines, adjustments } = await receiptDetail(receiptId);
   if (!receipt) throw new ReceiptlyError(404, 'NOT_FOUND', 'Resource not found.');
   return {
     receipt: {
@@ -106,6 +113,7 @@ const candidateDetail = async (receiptId: string): Promise<PersistedCandidateDet
     },
     lines: lines.map((line) => ({
       id: line.id,
+      lineType: 'product',
       rawText: line.rawText,
       productName: line.displayName,
       quantity: line.quantity === null ? null : String(line.quantity),
@@ -116,8 +124,22 @@ const candidateDetail = async (receiptId: string): Promise<PersistedCandidateDet
       source: line.source,
       included: line.status === 'included',
     })),
+    adjustments: adjustments.map((adjustment) => ({
+      id: adjustment.id,
+      lineType: 'discount',
+      amountCents: adjustment.amountCents,
+      note: adjustment.note,
+    })),
   };
 };
+
+const hasCandidateContent = (line: ReceiptCandidate['lines'][number]) => (
+  line.rawText !== null || line.productName !== null || line.linePriceCents !== null
+);
+
+const adjustmentNote = (line: ReceiptCandidate['lines'][number]) => (
+  line.productName?.trim() || line.rawText?.trim() || null
+);
 
 /** 创建一张属于指定家庭的手动小票草稿。 */
 export const createReceipt = async (actor: ReceiptlyActor, householdId: string, input: ReceiptInput) => {
@@ -167,10 +189,9 @@ export const createScannedReceipt = async (
       scanModel: model,
     }).returning();
 
-    const candidateLines = extraction.lines.filter((line) => (
-      line.rawText !== null
-      || line.productName !== null
-      || line.linePriceCents !== null
+    const candidateLines = extraction.lines.filter((line) => line.lineType === 'product' && hasCandidateContent(line));
+    const candidateDiscounts = extraction.lines.filter((line) => (
+      line.lineType === 'discount' && line.included && line.linePriceCents !== null
     ));
     const lines = candidateLines.length === 0
       ? []
@@ -191,15 +212,25 @@ export const createScannedReceipt = async (
           status: 'included' as const,
         })))
         .returning();
+    const adjustments = candidateDiscounts.length === 0
+      ? []
+      : await tx.insert(receiptAdjustments).values(candidateDiscounts.map((line) => ({
+        receiptId: receipt.id,
+        type: 'discount' as const,
+        amountCents: line.linePriceCents!,
+        note: adjustmentNote(line),
+      }))).returning();
     await tx.insert(auditEvents).values({
       householdId,
       actorId: actor.userId,
       action: 'receipt.scanned',
       objectType: 'receipt',
       objectId: receipt.id,
-      changeSummary: { model, lineCount: lines.length, imageStored: false },
+      changeSummary: {
+        model, lineCount: lines.length, adjustmentCount: adjustments.length, imageStored: false,
+      },
     });
-    return { receipt, lines };
+    return { receipt, lines, adjustments };
   });
 };
 
@@ -229,8 +260,9 @@ export const persistScannedCandidate = async (
   const currency = candidate.currency && /^[a-z]{3}$/i.test(candidate.currency)
     ? candidate.currency.toUpperCase()
     : null;
-  const validLines = candidate.lines.filter((line) => (
-    line.rawText !== null || line.productName !== null || line.linePriceCents !== null
+  const validLines = candidate.lines.filter((line) => line.lineType === 'product' && hasCandidateContent(line));
+  const validDiscounts = candidate.lines.filter((line) => (
+    line.lineType === 'discount' && line.included && line.linePriceCents !== null
   ));
 
   const result = await db.transaction(async (tx) => {
@@ -264,13 +296,23 @@ export const persistScannedCandidate = async (
         status: line.included ? 'included' as const : 'excluded' as const,
       })),
     ).returning();
+    const adjustments = validDiscounts.length === 0
+      ? []
+      : await tx.insert(receiptAdjustments).values(validDiscounts.map((line) => ({
+        receiptId: receipt.id,
+        type: 'discount' as const,
+        amountCents: line.linePriceCents!,
+        note: adjustmentNote(line),
+      }))).returning();
     await tx.insert(auditEvents).values({
       householdId,
       actorId: actor.userId,
       action: 'receipt.candidate_imported',
       objectType: 'receipt',
       objectId: receipt.id,
-      changeSummary: { clientDraftId, lineCount: lines.length, imageStored: false },
+      changeSummary: {
+        clientDraftId, lineCount: lines.length, adjustmentCount: adjustments.length, imageStored: false,
+      },
     });
     return receipt.id;
   });
@@ -333,7 +375,7 @@ export const confirmScannedCandidate = async (
       throw new ReceiptlyError(
         409,
         'DUPLICATE_RECEIPT',
-        '这张小票已经入账。',
+        'This receipt has already been recorded.',
         { existingReceiptId: duplicate.id },
       );
     }
@@ -342,8 +384,9 @@ export const confirmScannedCandidate = async (
   const currency = candidate.currency && /^[a-z]{3}$/i.test(candidate.currency)
     ? candidate.currency.toUpperCase()
     : null;
-  const linesToSave = candidate.lines.filter((line) => (
-    line.rawText !== null || line.productName !== null || line.linePriceCents !== null
+  const linesToSave = candidate.lines.filter((line) => line.lineType === 'product' && hasCandidateContent(line));
+  const discountsToSave = candidate.lines.filter((line) => (
+    line.lineType === 'discount' && line.included && line.linePriceCents !== null
   ));
   // 小票头、商品行、确认快照和审计记录共同构成一次记账事件，
   // 必须一起提交或一起回滚。
@@ -378,6 +421,14 @@ export const confirmScannedCandidate = async (
         status: line.included ? 'included' as const : 'excluded' as const,
       })),
     ).returning();
+    const adjustments = discountsToSave.length === 0
+      ? []
+      : await tx.insert(receiptAdjustments).values(discountsToSave.map((line) => ({
+        receiptId: receipt.id,
+        type: 'discount' as const,
+        amountCents: line.linePriceCents!,
+        note: adjustmentNote(line),
+      }))).returning();
     await tx.insert(receiptConfirmations).values({
       receiptId: receipt.id,
       receiptVersion: receipt.version,
@@ -390,7 +441,12 @@ export const confirmScannedCandidate = async (
       action: 'receipt.scan_confirmed',
       objectType: 'receipt',
       objectId: receipt.id,
-      changeSummary: { clientDraftId, lineCount: lines.length, totalCents: receipt.totalCents },
+      changeSummary: {
+        clientDraftId,
+        lineCount: lines.length,
+        adjustmentCount: adjustments.length,
+        totalCents: receipt.totalCents,
+      },
     });
     return receipt.id;
   });

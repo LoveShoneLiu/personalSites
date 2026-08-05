@@ -6,8 +6,8 @@ import { requireActor } from '@/receiptly-api/infrastructure/auth/guard';
 import { extractReceiptFromImage } from '@/receiptly-api/infrastructure/ai/openrouter';
 
 export const runtime = 'nodejs';
-// OCR 是外部网络调用，为非 Fluid Compute 环境显式申请 Hobby 计划允许的最长执行时间。
-export const maxDuration = 60;
+// 为视觉模型调用预留充足时间；部署环境必须启用 Vercel Fluid Compute。
+export const maxDuration = 180;
 
 const maxImageBytes = 4 * 1024 * 1024;
 type Context = { params: Promise<{ householdId: string }> };

@@ -54,7 +54,7 @@ const requireLookupQuota = async (userId: string) => {
       gte(householdInvitationAttempts.createdAt, since),
     ));
   if (result.count >= INVITATION_MAX_LOOKUPS) {
-    throw new ReceiptlyError(429, 'RATE_LIMITED', '邀请码查询过于频繁，请稍后重试。', {
+    throw new ReceiptlyError(429, 'RATE_LIMITED', 'Too many invitation code lookups. Please try again later.', {
       retryAfter: INVITATION_LOOKUP_WINDOW_MS / 1000,
     });
   }
@@ -68,7 +68,7 @@ const loadInvitation = async (actor: ReceiptlyActor, rawCode: string) => {
     || Array.from(code).some((character) => !INVITATION_ALPHABET.includes(character))
   ) {
     await recordLookup(actor.userId, false);
-    throw new ReceiptlyError(404, 'INVITATION_NOT_FOUND', '邀请码不存在。');
+    throw new ReceiptlyError(404, 'INVITATION_NOT_FOUND', 'The invitation code was not found.');
   }
   const [invitation] = await getReceiptlyDb().select({
     id: householdInvitations.id,
@@ -89,13 +89,13 @@ const loadInvitation = async (actor: ReceiptlyActor, rawCode: string) => {
     .limit(1);
   await recordLookup(actor.userId, Boolean(invitation));
   if (!invitation || invitation.revokedAt) {
-    throw new ReceiptlyError(404, 'INVITATION_NOT_FOUND', '邀请码不存在。');
+    throw new ReceiptlyError(404, 'INVITATION_NOT_FOUND', 'The invitation code was not found.');
   }
   if (invitation.acceptedAt) {
-    throw new ReceiptlyError(409, 'INVITATION_ALREADY_ACCEPTED', '该邀请已经被使用。');
+    throw new ReceiptlyError(409, 'INVITATION_ALREADY_ACCEPTED', 'This invitation has already been accepted.');
   }
   if (invitation.expiresAt <= new Date()) {
-    throw new ReceiptlyError(410, 'INVITATION_EXPIRED', '该邀请已经过期。');
+    throw new ReceiptlyError(410, 'INVITATION_EXPIRED', 'This invitation has expired.');
   }
   return invitation;
 };
@@ -114,7 +114,7 @@ export const createHouseholdInvitation = async (
   const from = process.env.RECEIPTLY_EMAIL_FROM;
   if (!from) throw new ReceiptlyError(503, 'CONFIGURATION_ERROR', 'Email sender is not configured.');
   if (actor.email === email) {
-    throw new ReceiptlyError(409, 'ALREADY_A_MEMBER', '你已经是该家庭成员。');
+    throw new ReceiptlyError(409, 'ALREADY_A_MEMBER', 'You are already a member of this household.');
   }
   const db = getReceiptlyDb();
   const [existingMembership] = await db.select({
@@ -128,10 +128,10 @@ export const createHouseholdInvitation = async (
     ))
     .limit(1);
   if (existingMembership?.householdId === householdId) {
-    throw new ReceiptlyError(409, 'ALREADY_A_MEMBER', '该用户已经是家庭成员。');
+    throw new ReceiptlyError(409, 'ALREADY_A_MEMBER', 'This user is already a member of the household.');
   }
   if (existingMembership) {
-    throw new ReceiptlyError(409, 'USER_ALREADY_HAS_HOUSEHOLD', '该用户已经加入其他家庭。');
+    throw new ReceiptlyError(409, 'USER_ALREADY_HAS_HOUSEHOLD', 'This user already belongs to another household.');
   }
 
   const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
@@ -140,7 +140,7 @@ export const createHouseholdInvitation = async (
     gte(householdInvitations.createdAt, hourAgo),
   ));
   if (recentCount.count >= INVITATION_MAX_SENDS_PER_HOUR) {
-    throw new ReceiptlyError(429, 'RATE_LIMITED', '邀请发送过于频繁，请稍后重试。', { retryAfter: 3600 });
+    throw new ReceiptlyError(429, 'RATE_LIMITED', 'Too many invitations have been sent. Please try again later.', { retryAfter: 3600 });
   }
   const [latest] = await db.select({ createdAt: householdInvitations.createdAt })
     .from(householdInvitations)
@@ -151,7 +151,7 @@ export const createHouseholdInvitation = async (
     .orderBy(desc(householdInvitations.createdAt))
     .limit(1);
   if (latest && latest.createdAt.getTime() + INVITATION_RESEND_DELAY_MS > Date.now()) {
-    throw new ReceiptlyError(429, 'RATE_LIMITED', '请稍后再发送邀请。', { retryAfter: 60 });
+    throw new ReceiptlyError(429, 'RATE_LIMITED', 'Please wait before sending another invitation.', { retryAfter: 60 });
   }
 
   const code = invitationCode();
@@ -191,7 +191,7 @@ export const createHouseholdInvitation = async (
     await db.update(householdInvitations).set({ revokedAt: new Date() }).where(
       eq(householdInvitations.id, invitation.id),
     );
-    throw new ReceiptlyError(503, 'EMAIL_DELIVERY_FAILED', '邀请邮件暂时无法发送。');
+    throw new ReceiptlyError(503, 'EMAIL_DELIVERY_FAILED', 'The invitation email could not be sent. Please try again later.');
   }
   return { invitationId: invitation.id, email, expiresAt };
 };
@@ -210,7 +210,7 @@ export const previewHouseholdInvitation = async (actor: ReceiptlyActor, code: st
 export const acceptHouseholdInvitation = async (actor: ReceiptlyActor, code: string) => {
   const invitation = await loadInvitation(actor, code);
   if (!actor.email || actor.email.trim().toLowerCase() !== invitation.invitedEmail) {
-    throw new ReceiptlyError(403, 'INVITATION_EMAIL_MISMATCH', '请使用收到邀请的邮箱登录。');
+    throw new ReceiptlyError(403, 'INVITATION_EMAIL_MISMATCH', 'Please sign in with the email address that received the invitation.');
   }
   const db = getReceiptlyDb();
   const activeMemberships = await db.select({ householdId: householdMembers.householdId })
@@ -221,10 +221,10 @@ export const acceptHouseholdInvitation = async (actor: ReceiptlyActor, code: str
     ))
     .limit(1);
   if (activeMemberships[0]?.householdId === invitation.householdId) {
-    throw new ReceiptlyError(409, 'ALREADY_A_MEMBER', '你已经是该家庭成员。');
+    throw new ReceiptlyError(409, 'ALREADY_A_MEMBER', 'You are already a member of this household.');
   }
   if (activeMemberships.length > 0) {
-    throw new ReceiptlyError(409, 'USER_ALREADY_HAS_HOUSEHOLD', '当前MVP每个用户只能加入一个家庭。');
+    throw new ReceiptlyError(409, 'USER_ALREADY_HAS_HOUSEHOLD', 'Each user can belong to only one household.');
   }
 
   await db.transaction(async (tx) => {
@@ -237,7 +237,7 @@ export const acceptHouseholdInvitation = async (actor: ReceiptlyActor, code: str
       isNull(householdInvitations.revokedAt),
     )).returning({ id: householdInvitations.id });
     if (accepted.length === 0) {
-      throw new ReceiptlyError(409, 'INVITATION_ALREADY_ACCEPTED', '该邀请已经被使用。');
+      throw new ReceiptlyError(409, 'INVITATION_ALREADY_ACCEPTED', 'This invitation has already been accepted.');
     }
     const [existing] = await tx.select({ id: householdMembers.id })
       .from(householdMembers)
@@ -314,9 +314,9 @@ export const removeHouseholdMember = async (
     eq(householdMembers.userId, userId),
     eq(householdMembers.status, 'active'),
   )).limit(1);
-  if (!member) throw new ReceiptlyError(404, 'MEMBER_NOT_FOUND', '家庭成员不存在。');
+  if (!member) throw new ReceiptlyError(404, 'MEMBER_NOT_FOUND', 'The household member was not found.');
   if (member.role === 'owner' || userId === actor.userId) {
-    throw new ReceiptlyError(409, 'CANNOT_REMOVE_OWNER', '不能删除家庭 Owner。');
+    throw new ReceiptlyError(409, 'CANNOT_REMOVE_OWNER', 'The household owner cannot be removed.');
   }
   await db.transaction(async (tx) => {
     await tx.update(householdMembers).set({ status: 'removed' }).where(

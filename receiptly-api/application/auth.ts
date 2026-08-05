@@ -154,10 +154,10 @@ const readChallenge = async (
     ))
     .limit(1);
   if (!challenge || challenge.expiresAt <= new Date()) {
-    throw new ReceiptlyError(401, 'LOGIN_ATTEMPT_EXPIRED', '登录请求已过期，请重试。');
+    throw new ReceiptlyError(401, 'LOGIN_ATTEMPT_EXPIRED', 'The login request has expired. Please try again.');
   }
   if (challenge.stateHash !== hashLoginSecret(state)) {
-    throw new ReceiptlyError(401, 'LOGIN_STATE_INVALID', '登录 state 无效。');
+    throw new ReceiptlyError(401, 'LOGIN_STATE_INVALID', 'The login state is invalid.');
   }
   return challenge;
 };
@@ -172,7 +172,7 @@ const consumeChallenge = async (attemptId: string) => {
       gt(receiptlyAuthChallenges.expiresAt, new Date()),
     ))
     .returning({ id: receiptlyAuthChallenges.id });
-  if (!consumed) throw new ReceiptlyError(401, 'LOGIN_ATTEMPT_EXPIRED', '登录请求已使用或已过期。');
+  if (!consumed) throw new ReceiptlyError(401, 'LOGIN_ATTEMPT_EXPIRED', 'The login request has already been used or has expired.');
 };
 
 const existingMethodsForEmail = async (email: string) => getReceiptlyDb()
@@ -221,7 +221,7 @@ const findOrCreateIdentity = async (
     // 账号关联必须由已登录用户明确发起。
     const methods = await existingMethodsForEmail(identity.email);
     if (methods.length > 0) {
-      throw new ReceiptlyError(409, 'ACCOUNT_LINK_REQUIRED', '该邮箱已关联其他登录方式，请先使用原方式登录。', {
+      throw new ReceiptlyError(409, 'ACCOUNT_LINK_REQUIRED', 'This email is linked to another sign-in method. Please sign in using the original method.', {
         existingMethods: [...new Set(methods.map(({ provider: method }) => method))],
       });
     }
@@ -370,7 +370,7 @@ export const requestEmailCode = async (emailInput: string, locale: ReceiptlyLoca
     gte(receiptlyEmailLoginCodes.createdAt, hourAgo),
   ));
   if (recentCount.count >= EMAIL_MAX_SENDS_PER_HOUR) {
-    throw new ReceiptlyError(429, 'RATE_LIMITED', '验证码请求过于频繁，请稍后重试。', { retryAfter: 3600 });
+    throw new ReceiptlyError(429, 'RATE_LIMITED', 'Too many verification code requests. Please try again later.', { retryAfter: 3600 });
   }
   const [latest] = await db.select().from(receiptlyEmailLoginCodes).where(and(
     eq(receiptlyEmailLoginCodes.email, email),
@@ -378,7 +378,7 @@ export const requestEmailCode = async (emailInput: string, locale: ReceiptlyLoca
   )).orderBy(desc(receiptlyEmailLoginCodes.createdAt))
     .limit(1);
   if (latest && latest.resendAvailableAt > new Date()) {
-    throw new ReceiptlyError(429, 'RATE_LIMITED', '请稍后再发送验证码。', {
+    throw new ReceiptlyError(429, 'RATE_LIMITED', 'Please wait before requesting another verification code.', {
       retryAfter: Math.ceil((latest.resendAvailableAt.getTime() - Date.now()) / 1000),
     });
   }
@@ -412,7 +412,7 @@ export const requestEmailCode = async (emailInput: string, locale: ReceiptlyLoca
     await db.update(receiptlyEmailLoginCodes).set({ consumedAt: new Date() }).where(
       eq(receiptlyEmailLoginCodes.id, codeId),
     );
-    throw new ReceiptlyError(503, 'EMAIL_DELIVERY_FAILED', '验证码邮件暂时无法发送。');
+    throw new ReceiptlyError(503, 'EMAIL_DELIVERY_FAILED', 'The verification email could not be sent. Please try again later.');
   }
   return { expiresIn: 600, resendAfter: 60 };
 };
@@ -425,17 +425,17 @@ const consumeEmailCode = async (email: string, code: string) => {
   )).orderBy(desc(receiptlyEmailLoginCodes.createdAt))
     .limit(1);
   if (!loginCode || loginCode.expiresAt <= new Date()) {
-    throw new ReceiptlyError(401, 'EMAIL_CODE_EXPIRED', '验证码已过期，请重新获取。');
+    throw new ReceiptlyError(401, 'EMAIL_CODE_EXPIRED', 'The verification code has expired. Please request a new code.');
   }
   if (loginCode.attemptCount >= EMAIL_MAX_ATTEMPTS) {
-    throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', '验证码尝试次数过多，请重新获取。');
+    throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', 'Too many verification attempts. Please request a new code.');
   }
   const codeHash = hashLoginSecret(`${loginCode.id}:${email}:${code}`);
   if (codeHash !== loginCode.codeHash) {
     await db.update(receiptlyEmailLoginCodes).set({
       attemptCount: loginCode.attemptCount + 1,
     }).where(eq(receiptlyEmailLoginCodes.id, loginCode.id));
-    throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', '验证码不正确。', {
+    throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', 'The verification code is incorrect.', {
       remainingAttempts: Math.max(0, EMAIL_MAX_ATTEMPTS - loginCode.attemptCount - 1),
     });
   }
@@ -445,7 +445,7 @@ const consumeEmailCode = async (email: string, code: string) => {
     eq(receiptlyEmailLoginCodes.id, loginCode.id),
     isNull(receiptlyEmailLoginCodes.consumedAt),
   )).returning({ id: receiptlyEmailLoginCodes.id });
-  if (!consumed) throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', '验证码已使用。');
+  if (!consumed) throw new ReceiptlyError(401, 'EMAIL_CODE_INVALID', 'The verification code has already been used.');
 };
 
 /** 消费一次性邮箱验证码，并创建或恢复兼容的无密码邮箱会话。 */
@@ -486,7 +486,7 @@ export const registerWithEmailPassword = async (input: {
   )).limit(1);
 
   if (existingUser?.passwordHash) {
-    throw new ReceiptlyError(409, 'EMAIL_ALREADY_REGISTERED', '该邮箱已注册，请直接登录。');
+    throw new ReceiptlyError(409, 'EMAIL_ALREADY_REGISTERED', 'This email is already registered. Please sign in.');
   }
 
   let existingEmailIdentityId: string | null = null;
@@ -503,7 +503,7 @@ export const registerWithEmailPassword = async (input: {
       throw new ReceiptlyError(
         409,
         'ACCOUNT_LINK_REQUIRED',
-        '该邮箱已关联其他登录方式，请先使用原方式登录。',
+        'This email is linked to another sign-in method. Please sign in using the original method.',
         { existingMethods: [...new Set(methods.map(({ provider }) => provider))] },
       );
     }
@@ -532,7 +532,7 @@ export const registerWithEmailPassword = async (input: {
         displayName: receiptlyUsers.displayName,
       });
       if (!user) {
-        throw new ReceiptlyError(409, 'EMAIL_ALREADY_REGISTERED', '该邮箱已注册，请直接登录。');
+        throw new ReceiptlyError(409, 'EMAIL_ALREADY_REGISTERED', 'This email is already registered. Please sign in.');
       }
       await tx.update(receiptlyAuthIdentities).set({
         providerEmailVerifiedAt: new Date(),
@@ -597,7 +597,7 @@ export const loginWithEmailPassword = async (
     .limit(1);
 
   if (account?.passwordLockedUntil && account.passwordLockedUntil > new Date()) {
-    throw new ReceiptlyError(429, 'RATE_LIMITED', '密码尝试次数过多，请稍后重试。', {
+    throw new ReceiptlyError(429, 'RATE_LIMITED', 'Too many password attempts. Please try again later.', {
       retryAfter: Math.ceil((account.passwordLockedUntil.getTime() - Date.now()) / 1000),
     });
   }
@@ -614,7 +614,7 @@ export const loginWithEmailPassword = async (
         updatedAt: new Date(),
       }).where(eq(receiptlyUsers.id, account.id));
     }
-    throw new ReceiptlyError(401, 'EMAIL_PASSWORD_INVALID', '邮箱或密码不正确。');
+    throw new ReceiptlyError(401, 'EMAIL_PASSWORD_INVALID', 'The email or password is incorrect.');
   }
 
   await db.transaction(async (tx) => {
@@ -641,7 +641,7 @@ export const refreshSession = async (refreshToken: string, installationId: strin
     eq(receiptlySessions.refreshTokenHash, hashToken(refreshToken)),
   ).limit(1);
   if (!current || current.expiresAt <= new Date() || current.installationId !== installationId) {
-    throw new ReceiptlyError(401, 'REFRESH_TOKEN_INVALID', 'Refresh token无效或已过期。');
+    throw new ReceiptlyError(401, 'REFRESH_TOKEN_INVALID', 'The refresh token is invalid or has expired.');
   }
   if (current.revokedAt) {
     // 已轮换 Token 再次出现，可能意味着泄露或客户端状态失步；
@@ -650,7 +650,7 @@ export const refreshSession = async (refreshToken: string, installationId: strin
       revokedAt: new Date(),
       revokeReason: 'refresh_token_reuse',
     }).where(eq(receiptlySessions.tokenFamilyId, current.tokenFamilyId));
-    throw new ReceiptlyError(401, 'REFRESH_TOKEN_REUSED', '检测到已使用的Refresh Token，当前设备已退出。');
+    throw new ReceiptlyError(401, 'REFRESH_TOKEN_REUSED', 'Refresh token reuse was detected. This device has been signed out.');
   }
 
   const nextRefreshToken = createRefreshToken();
@@ -677,7 +677,7 @@ export const refreshSession = async (refreshToken: string, installationId: strin
     }).returning({ id: receiptlySessions.id });
     return next;
   });
-  if (!result) throw new ReceiptlyError(401, 'REFRESH_TOKEN_REUSED', 'Refresh Token已被使用。');
+  if (!result) throw new ReceiptlyError(401, 'REFRESH_TOKEN_REUSED', 'The refresh token has already been used.');
   return {
     accessToken: await createAccessToken(current.userId, result.id),
     refreshToken: nextRefreshToken,
