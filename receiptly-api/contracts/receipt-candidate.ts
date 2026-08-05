@@ -1,6 +1,7 @@
 /** 文件职责：定义 OCR 候选小票、候选商品行及金额核对结果的数据结构。 */
 export type ReceiptCandidateLine = {
   sortOrder: number;
+  lineType: 'product' | 'discount';
   rawText: string | null;
   productName: string | null;
   quantity: string | null;

@@ -35,6 +35,7 @@ const normalizedUnitPriceBasis = (basis: string | null) => {
 
 const responseLine = (line: ReceiptCandidateLine) => ({
   id: crypto.randomUUID(),
+  lineType: line.lineType,
   rawText: line.rawText,
   productName: line.productName,
   quantity: line.quantity,

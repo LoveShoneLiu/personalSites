@@ -6,7 +6,7 @@ import { resolveDeclaredTotalCents } from './receipt-total';
 
 const OPENROUTER_ENDPOINT = 'https://openrouter.ai/api/v1/chat/completions';
 // 主动超时必须早于 Vercel Function 上限，预留时间生成统一错误响应。
-const OCR_REQUEST_TIMEOUT_MS = 50_000;
+const OCR_REQUEST_TIMEOUT_MS = 80_000;
 const defaultModel = 'qwen/qwen3-vl-32b-instruct';
 
 export type ReceiptExtraction = ReceiptCandidate;
@@ -137,8 +137,13 @@ const extractionSchema = {
         items: {
           type: 'object',
           additionalProperties: false,
-          required: ['rawText', 'productName', 'quantity', 'unit', 'unitPriceCents', 'unitPriceBasis', 'linePriceCents', 'confidence'],
+          required: ['lineType', 'rawText', 'productName', 'quantity', 'unit', 'unitPriceCents', 'unitPriceBasis', 'linePriceCents', 'confidence'],
           properties: {
+            lineType: {
+              type: 'string',
+              enum: ['product', 'discount'],
+              description: 'Use discount only for a separately printed negative saving, coupon, or promotional adjustment.',
+            },
             rawText: { type: ['string', 'null'] },
             productName: { type: ['string', 'null'] },
             quantity: { type: ['string', 'null'] },
@@ -170,7 +175,8 @@ const isRawExtraction = (value: unknown): value is RawExtraction => {
     && result.lines.every((line) => {
       if (!line || typeof line !== 'object' || Array.isArray(line)) return false;
       const candidate = line as Record<string, unknown>;
-      return (typeof candidate.rawText === 'string' || candidate.rawText === null)
+      return (candidate.lineType === 'product' || candidate.lineType === 'discount')
+        && (typeof candidate.rawText === 'string' || candidate.rawText === null)
         && (typeof candidate.productName === 'string' || candidate.productName === null)
         && (typeof candidate.quantity === 'string' || candidate.quantity === null)
         && (typeof candidate.unit === 'string' || candidate.unit === null)
@@ -182,6 +188,23 @@ const isRawExtraction = (value: unknown): value is RawExtraction => {
 };
 
 const candidateLine = (line: RawExtractionLine, sortOrder: number): ReceiptCandidateLine => {
+  // 金额符号是收据上的确定性事实，不能完全信任模型对行类型的分类。
+  // 例如 Costco 的 `8.00-&` 可能被模型正确读成 -800，却仍误标为 product。
+  const isDiscount = line.lineType === 'discount'
+    || (line.linePriceCents !== null && line.linePriceCents < 0);
+  if (isDiscount) {
+    return {
+      ...line,
+      lineType: 'discount',
+      sortOrder,
+      quantity: null,
+      unit: null,
+      unitPriceCents: null,
+      unitPriceBasis: null,
+      source: 'ai',
+      included: true,
+    };
+  }
   const numericQuantity = line.quantity === null ? null : Number(line.quantity);
   // 当模型把行总价重复识别成单价时，使用数量和行总价反推可以纠正该结果。
   const calculatedUnitPrice = numericQuantity && numericQuantity > 0 && line.linePriceCents !== null
@@ -189,6 +212,7 @@ const candidateLine = (line: RawExtractionLine, sortOrder: number): ReceiptCandi
     : line.unitPriceCents;
   return {
     sortOrder,
+    lineType: 'product',
     rawText: line.rawText,
     productName: line.productName,
     quantity: normalizeReceiptQuantity(line.quantity),
@@ -257,6 +281,10 @@ export const extractReceiptFromImage = async (
           content: [
             'Extract one retail receipt into the schema exactly.',
             'Return only purchased goods as lines; exclude subtotal, total, tax, payment, loyalty, cashier, change and other non-item lines.',
+            'Use lineType product for purchased goods and lineType discount for separately printed negative instant savings, coupons, or promotional adjustments.',
+            'A trailing minus immediately before a tax marker, such as "2.00-&", means a negative discount of -200 cents; the ampersand is only a taxable-item marker.',
+            'For discount lines, preserve the negative linePriceCents and return null for quantity, unit, unitPriceCents, and unitPriceBasis.',
+            'Never classify a regular product as discount merely because it has a promotional price.',
             'declaredTotalCents is always the final tax-inclusive amount owed or charged.',
             'Never use TOTAL EXCL GST, subtotal before tax, net amount, GST amount, tax amount, cash tendered, or change as declaredTotalCents.',
             'Capture TOTAL EXCL GST in subtotalExcludingTaxCents and GST/tax in taxCents.',
